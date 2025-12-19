@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>
+    <%= isNew ? 'Novo Domínio' : 'Editar ' + domain %> - Caddy
+  </title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          fontSize: {
+            'xs': ['0.75rem', { lineHeight: '1rem' }],
+            'sm': ['0.8125rem', { lineHeight: '1.25rem' }],
+            'base': ['0.875rem', { lineHeight: '1.5rem' }],
+            'lg': ['1rem', { lineHeight: '1.75rem' }],
+            'xl': ['1.125rem', { lineHeight: '1.75rem' }],
+            '2xl': ['1.25rem', { lineHeight: '2rem' }],
+          },
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .sidebar {
+      transition: all 0.3s ease;
+    }
+
+    .sidebar-collapsed {
+      width: 4rem !important;
+    }
+
+    .sidebar-collapsed .sidebar-text {
+      display: none !important;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+    }
+
+    .custom-toast {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1050;
+      max-width: 350px;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      color: white;
+      font-size: 0.875rem;
+      font-weight: 500;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .custom-toast.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .custom-toast.success {
+      background-color: #10b981;
+    }
+
+    .custom-toast.danger {
+      background-color: #ef4444;
+    }
+
+    .custom-toast.warning {
+      background-color: #f59e0b;
+    }
+
+    .custom-toast.info {
+      background-color: #3b82f6;
+    }
+
+    .toast-close {
+      margin-left: 0.75rem;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    .toast-close:hover {
+      opacity: 1;
+    }
+
+    #templateType,
+    #templateType option {
+      color: #1f2937;
+    }
+
+    .dark #templateType,
+    .dark #templateType option {
+      color: #1f2937;
+    }
+  </style>
+</head>
+
+<body
+  class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col justify-between text-sm">
+  <div class="flex flex-col flex-1">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <div class="flex items-center justify-between px-4 py-2">
+        <div class="flex items-center">
+          <button id="sidebarToggle"
+            class="lg:hidden mr-3 p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="bi bi-list text-lg"></i>
+          </button>
+          <button id="sidebarCollapse"
+            class="hidden lg:flex mr-3 p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="bi bi-layout-sidebar text-lg"></i>
+          </button>
+          <div class="flex items-center">
+            <i class="bi bi-hdd-stack text-xl text-primary-600 dark:text-primary-400 mr-2"></i>
+            <h1 class="text-lg font-bold text-gray-900 dark:text-white">Serve Dashboard</h1>
+          </div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button id="themeToggle"
+            class="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+            <i class="bi bi-sun hidden dark:block text-sm"></i>
+            <i class="bi bi-moon block dark:hidden text-sm"></i>
+          </button>
+          <div class="relative">
+            <button id="userMenuButton"
+              class="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+              <div
+                class="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center text-white font-medium text-sm">
+                <i class="bi bi-person"></i>
+              </div>
+            </button>
+            <div id="userMenu"
+              class="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 hidden border border-gray-200 dark:border-gray-700">
+              <a href="/"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-house mr-2"></i>Início
+              </a>
+              <a href="/dashboard"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-terminal mr-2"></i>Node
+              </a>
+              <a href="/caddy"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300">
+                <i class="bi bi-globe mr-2"></i>Domínios
+              </a>
+              <a href="/docker"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box-seam mr-2"></i>Docker
+              </a>
+              <a href="/git"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-git mr-2"></i>Git
+              </a>
+              <a href="/auto"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-rocket-takeoff mr-2"></i>AutoInstall
+              </a>
+              <a href="/composer"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box mr-2"></i>Composer
+              </a>
+              <a href="/filemanager"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-archive mr-2"></i>File Manager
+              </a>
+              <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+              <a href="/logout"
+                class="block px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box-arrow-right mr-2"></i>Sair
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex">
+      <!-- Sidebar -->
+      <aside id="sidebar"
+        class="sidebar w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-[calc(100vh-49px)] fixed lg:static z-20 transition-all duration-300">
+        <nav class="p-3">
+          <ul class="space-y-1">
+            <li>
+              <a href="/"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-house mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Início</span>
+              </a>
+            </li>
+            <li>
+              <a href="/dashboard"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-terminal mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Node</span>
+              </a>
+            </li>
+            <li>
+              <a href="/caddy"
+                class="flex items-center px-3 py-1.5 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded-lg text-sm">
+                <i class="bi bi-globe mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Domínios</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docker"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-box-seam mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Docker</span>
+              </a>
+            </li>
+            <li>
+              <a href="/git"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-git mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Git</span>
+              </a>
+            </li>
+            <li>
+              <a href="/auto"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-rocket-takeoff mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">AutoInstall</span>
+              </a>
+            </li>
+            <li>
+              <a href="/composer"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-box mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Composer</span>
+              </a>
+            </li>
+            <li>
+              <a href="/filemanager"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-archive mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">File Manager</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- Main Content -->
+      <main id="mainContent" class="flex-1 p-4 transition-all duration-300">
+        <div class="max-w-4xl mx-auto">
+          <div class="mb-4">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+              <i class="bi bi-pencil-square mr-2 text-primary-600 dark:text-primary-400"></i>
+              <%= isNew ? 'Adicionar Novo Domínio' : 'Editar Domínio: ' + domain %>
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-0.5 text-sm">Configure o domínio no Caddy</p>
+          </div>
+
+          <!-- Form -->
+          <div
+            class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4">
+              <form id="domainForm" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Domínio <span class="text-gray-500 text-xs">(ex: meusite.com)</span>
+                  </label>
+                  <input name="domain"
+                    class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    value="<%= domain %>" <%=isNew ? 'required autofocus' : 'readonly' %>
+                  placeholder="meusite.com"
+                  >
+                </div>
+
+                <% if (isNew) { %>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de
+                      Configuração</label>
+                    <select id="templateType"
+                      class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      required>
+                      <option value="">-- Selecione um template --</option>
+                      <option value="reverse">🔄 Proxy Reverso (Node.js, PM2, etc)</option>
+                      <option value="redirect">↪️ Redirect (HTTP → HTTPS ou domínio antigo → novo)</option>
+                      <option value="static">📄 Site Estático (HTML, CSS, JS)</option>
+                      <option value="manual">✏️ Editar Manualmente</option>
+                    </select>
+                  </div>
+
+                  <!-- Dynamic Fields -->
+                  <div id="reverseFields" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Porta do Servidor <span class="text-gray-500 text-xs">(ex: 3000)</span>
+                    </label>
+                    <input id="reversePort" name="reversePort"
+                      class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="3000">
+                  </div>
+
+                  <div id="redirectFields" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      URL de Destino <span class="text-gray-500 text-xs">(ex: https://novosite.com)</span>
+                    </label>
+                    <input id="redirectUrl" name="redirectUrl"
+                      class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="https://novosite.com">
+                  </div>
+
+                  <div id="staticFields" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Caminho da Pasta <span class="text-gray-500 text-xs">(ex: /var/www/site)</span>
+                    </label>
+                    <input id="staticPath" name="staticPath"
+                      class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="/var/www/site">
+                  </div>
+                  <% } %>
+
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Configuração
+                        Caddy</label>
+                      <textarea name="config" id="config"
+                        class="w-full px-3 py-2 bg-gray-900 text-gray-100 border border-gray-600 rounded-md font-mono text-xs focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        rows="15" required><%= config %></textarea>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 pt-2">
+                      <button type="submit"
+                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium transition-colors">
+                        <i class="bi bi-save mr-1.5"></i> Salvar
+                      </button>
+                      <a href="/caddy"
+                        class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm font-medium transition-colors">
+                        <i class="bi bi-arrow-left mr-1.5"></i> Voltar
+                      </a>
+                      <% if (!isNew) { %>
+                        <button type="button"
+                          class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition-colors ml-auto"
+                          onclick="confirmDelete()">
+                          <i class="bi bi-trash mr-1.5"></i> Excluir
+                        </button>
+                        <% } %>
+                    </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-3 w-full">
+    <div class="px-4 text-center text-gray-500 dark:text-gray-400 text-xs">
+      &copy; <span id="currentYear"></span> Serve Dashboard - Caddy Manager
+    </div>
+  </footer>
+
+  <!-- Custom Toast -->
+  <div id="customToast" class="custom-toast hidden">
+    <span id="toastMessage"></span>
+    <span class="toast-close" onclick="hideToast()">&times;</span>
+  </div>
+
+  <script>
+    // Set current year
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+    // Theme management
+    const themeToggle = document.getElementById('themeToggle');
+    const htmlElement = document.documentElement;
+    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      htmlElement.classList.add('dark');
+    } else {
+      htmlElement.classList.remove('dark');
+    }
+    themeToggle.addEventListener('click', () => {
+      htmlElement.classList.toggle('dark');
+      localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    // Sidebar toggle
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+
+    const sidebarCollapse = document.getElementById('sidebarCollapse');
+    const mainContent = document.getElementById('mainContent');
+    sidebarCollapse.addEventListener('click', () => {
+      sidebar.classList.toggle('sidebar-collapsed');
+      mainContent.classList.toggle('lg:ml-0');
+      localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('sidebar-collapsed'));
+    });
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+      sidebar.classList.add('sidebar-collapsed');
+      mainContent.classList.add('lg:ml-0');
+    }
+
+    // User menu
+    const userMenuButton = document.getElementById('userMenuButton');
+    const userMenu = document.getElementById('userMenu');
+    userMenuButton.addEventListener('click', () => userMenu.classList.toggle('hidden'));
+    document.addEventListener('click', (e) => {
+      if (!userMenuButton.contains(e.target) && !userMenu.contains(e.target)) {
+        userMenu.classList.add('hidden');
+      }
+    });
+
+    // Close sidebar on mobile link click
+    sidebar.addEventListener('click', (e) => {
+      if (e.target.tagName === 'A' && window.innerWidth < 1024) {
+        sidebar.classList.remove('open');
+      }
+    });
+
+    // Toast
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('customToast');
+      document.getElementById('toastMessage').textContent = message;
+      toast.className = `custom-toast ${type}`;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+    function hideToast() {
+      document.getElementById('customToast').classList.remove('show');
+    }
+
+    // Template logic
+    document.addEventListener('DOMContentLoaded', () => {
+      const templateSelect = document.getElementById('templateType');
+      const configTextarea = document.getElementById('config');
+      const domainInput = document.querySelector('[name=domain]');
+      const reversePort = document.getElementById('reversePort');
+      const redirectUrl = document.getElementById('redirectUrl');
+      const staticPath = document.getElementById('staticPath');
+
+      if (templateSelect) {
+        templateSelect.addEventListener('change', generateConfig);
+      }
+
+      function generateConfig() {
+        const type = templateSelect.value;
+        const domain = domainInput.value.trim();
+
+        if (!domain) {
+          showToast('Por favor, preencha o domínio primeiro.', 'warning');
+          templateSelect.value = '';
+          return;
+        }
+
+        let config = '';
+
+        // Remove required from all
+        if (reversePort) reversePort.removeAttribute('required');
+        if (redirectUrl) redirectUrl.removeAttribute('required');
+        if (staticPath) staticPath.removeAttribute('required');
+
+        switch (type) {
+          case 'reverse':
+            if (reversePort) reversePort.setAttribute('required', true);
+            const port = reversePort?.value || '3000';
+            config = `${domain} {\n  reverse_proxy localhost:${port}\n}`;
+            break;
+
+          case 'redirect':
+            if (redirectUrl) redirectUrl.setAttribute('required', true);
+            const url = redirectUrl?.value || 'https://example.com';
+            config = `${domain} {\n  redir ${url} permanent\n}`;
+            break;
+
+          case 'static':
+            if (staticPath) staticPath.setAttribute('required', true);
+            const path = staticPath?.value || '/var/www/html';
+            config = `${domain} {\n  root * ${path}\n  file_server\n}`;
+            break;
+
+          case 'manual':
+            config = `${domain} {\n  # Escreva sua configuração aqui\n}`;
+            break;
+
+          default:
+            config = '';
+        }
+
+        configTextarea.value = config;
+
+        // Show specific fields
+        document.querySelectorAll('[id$="Fields"]').forEach(el => el.classList.add('hidden'));
+        if (type && type !== 'manual') {
+          const fieldElement = document.getElementById(`${type}Fields`);
+          if (fieldElement) {
+            fieldElement.classList.remove('hidden');
+          }
+        }
+      }
+
+      // Update config on input
+      if (reversePort) reversePort.addEventListener('input', generateConfig);
+      if (redirectUrl) redirectUrl.addEventListener('input', generateConfig);
+      if (staticPath) staticPath.addEventListener('input', generateConfig);
+
+      // If domain is filled and template selected, generate config
+      if (templateSelect && domainInput.value) {
+        const event = new Event('change');
+        templateSelect.dispatchEvent(event);
+      }
+    });
+
+    // Form submit
+    document.getElementById('domainForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const data = Object.fromEntries(fd);
+
+      try {
+        const res = await fetch('/api/caddy/save', {
+          method: 'POST',
+          body: JSON.stringify(data),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          showToast('✅ ' + result.message, 'success');
+          setTimeout(() => window.location.href = '/caddy', 1500);
+        } else {
+          showToast('❌ Erro: ' + result.error, 'danger');
+        }
+      } catch (error) {
+        showToast('❌ Falha na conexão com o servidor', 'danger');
+      }
+    });
+
+    // Delete function
+    function confirmDelete() {
+      if (confirm('⚠️ ATENÇÃO: Esta ação não pode ser desfeita. Deseja realmente excluir este domínio?')) {
+        const domain = document.querySelector('[name=domain]').value;
+
+        fetch(`/api/caddy/delete/${domain}`, { method: 'POST' })
+          .then(r => r.json())
+          .then(d => {
+            if (d.success) {
+              showToast('✅ ' + d.message, 'success');
+              setTimeout(() => window.location.href = '/caddy', 1500);
+            } else {
+              showToast('❌ Erro: ' + d.error, 'danger');
+            }
+          })
+          .catch(err => {
+            showToast('❌ Falha na conexão com o servidor', 'danger');
+          });
+      }
+    }
+  </script>
+</body>
+
+</html>

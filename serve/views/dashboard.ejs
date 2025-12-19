@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Serve Dashboard - PM2</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          fontSize: {
+            'xs': ['0.75rem', { lineHeight: '1rem' }],
+            'sm': ['0.8125rem', { lineHeight: '1.25rem' }],
+            'base': ['0.875rem', { lineHeight: '1.5rem' }],
+            'lg': ['1rem', { lineHeight: '1.75rem' }],
+            'xl': ['1.125rem', { lineHeight: '1.75rem' }],
+            '2xl': ['1.25rem', { lineHeight: '2rem' }],
+          },
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .sidebar {
+      transition: all 0.3s ease;
+    }
+
+    .sidebar-collapsed {
+      width: 4rem !important;
+    }
+
+    .sidebar-collapsed .sidebar-text {
+      display: none !important;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+    }
+
+    .custom-toast {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1050;
+      max-width: 350px;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      color: white;
+      font-size: 0.875rem;
+      font-weight: 500;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .custom-toast.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .custom-toast.success {
+      background-color: #10b981;
+    }
+
+    .custom-toast.danger {
+      background-color: #ef4444;
+    }
+
+    .custom-toast.warning {
+      background-color: #f59e0b;
+    }
+
+    .toast-close {
+      margin-left: 0.75rem;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    .toast-close:hover {
+      opacity: 1;
+    }
+
+    .modal-backdrop {
+      backdrop-filter: blur(4px);
+    }
+  </style>
+</head>
+
+<body
+  class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col justify-between text-sm">
+  <div class="flex flex-col flex-1">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <div class="flex items-center justify-between px-4 py-2">
+        <div class="flex items-center">
+          <button id="sidebarToggle"
+            class="lg:hidden mr-3 p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="bi bi-list text-lg"></i>
+          </button>
+          <button id="sidebarCollapse"
+            class="hidden lg:flex mr-3 p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="bi bi-layout-sidebar text-lg"></i>
+          </button>
+          <div class="flex items-center">
+            <i class="bi bi-hdd-stack text-xl text-primary-600 dark:text-primary-400 mr-2"></i>
+            <h1 class="text-lg font-bold text-gray-900 dark:text-white">Serve Dashboard</h1>
+          </div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button id="themeToggle"
+            class="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+            <i class="bi bi-sun hidden dark:block text-sm"></i>
+            <i class="bi bi-moon block dark:hidden text-sm"></i>
+          </button>
+          <div class="relative">
+            <button id="userMenuButton"
+              class="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+              <div
+                class="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center text-white font-medium text-sm">
+                <i class="bi bi-person"></i>
+              </div>
+            </button>
+            <div id="userMenu"
+              class="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 hidden border border-gray-200 dark:border-gray-700">
+              <a href="/"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-house mr-2"></i>Início
+              </a>
+              <a href="/dashboard"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300">
+                <i class="bi bi-terminal mr-2"></i>Node
+              </a>
+              <a href="/caddy"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-globe mr-2"></i>Domínios
+              </a>
+              <a href="/docker"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box-seam mr-2"></i>Docker
+              </a>
+              <a href="/git"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-git mr-2"></i>Git
+              </a>
+              <a href="/auto"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-rocket-takeoff mr-2"></i>AutoInstall
+              </a>
+              <a href="/composer"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box mr-2"></i>Composer
+              </a>
+              <a href="/filemanager"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-archive mr-2"></i>File Manager
+              </a>
+              <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+              <a href="/logout"
+                class="block px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box-arrow-right mr-2"></i>Sair
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex">
+      <!-- Sidebar -->
+      <aside id="sidebar"
+        class="sidebar w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-[calc(100vh-49px)] fixed lg:static z-20 transition-all duration-300">
+        <nav class="p-3">
+          <ul class="space-y-1">
+            <li>
+              <a href="/"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-house mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Início</span>
+              </a>
+            </li>
+            <li>
+              <a href="/dashboard"
+                class="flex items-center px-3 py-1.5 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded-lg text-sm">
+                <i class="bi bi-terminal mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Node</span>
+              </a>
+            </li>
+            <li>
+              <a href="/caddy"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-globe mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Domínios</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docker"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-box-seam mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Docker</span>
+              </a>
+            </li>
+            <li>
+              <a href="/git"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-git mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Git</span>
+              </a>
+            </li>
+            <li>
+              <a href="/auto"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-rocket-takeoff mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">AutoInstall</span>
+              </a>
+            </li>
+            <li>
+              <a href="/composer"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-box mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Composer</span>
+              </a>
+            </li>
+            <li>
+              <a href="/filemanager"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-archive mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">File Manager</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- Main Content -->
+      <main id="mainContent" class="flex-1 p-4 transition-all duration-300">
+        <div class="mb-4">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+            <i class="bi bi-graph-up mr-2 text-primary-600 dark:text-primary-400"></i>
+            Gerenciar Processos PM2
+          </h2>
+          <p class="text-gray-600 dark:text-gray-400 mt-0.5 text-sm">Gerencie seus processos Node.js com PM2</p>
+        </div>
+
+        <!-- Start Process Form -->
+        <div
+          class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden mb-4">
+          <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-base font-medium text-gray-900 dark:text-white flex items-center">
+              <i class="bi bi-plus-circle mr-2 text-primary-600 dark:text-primary-400"></i>
+              Iniciar Novo Processo
+            </h3>
+          </div>
+          <div class="p-4">
+            <form id="startForm" class="grid grid-cols-1 md:grid-cols-12 gap-3">
+              <div class="md:col-span-3">
+                <input name="name"
+                  class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  placeholder="Nome" required>
+              </div>
+              <div class="md:col-span-5">
+                <input name="script"
+                  class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  placeholder="Caminho do script" required>
+              </div>
+              <div class="md:col-span-3">
+                <input name="args"
+                  class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  placeholder="Args (opcional)">
+              </div>
+              <div class="md:col-span-1">
+                <button type="submit"
+                  class="w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors">
+                  <i class="bi bi-play-fill"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Processes Table -->
+        <div
+          class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h3 class="text-base font-medium text-gray-900 dark:text-white">Processos Ativos</h3>
+            <button onclick="showLogs()"
+              class="flex items-center px-2.5 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm transition-colors">
+              <i class="bi bi-file-earmark-text mr-1.5"></i>
+              Logs Globais
+            </button>
+          </div>
+          <div class="p-3">
+            <% if (processes && processes.length> 0) { %>
+              <table class="w-full">
+                <thead>
+                  <tr>
+                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Nome</th>
+                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Script</th>
+                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Porta</th>
+                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Status</th>
+                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">CPU</th>
+                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Mem</th>
+                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Ações</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                  <% processes.forEach(p=> { %>
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">
+                        <%= p.name %>
+                      </td>
+                      <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-xs">
+                        <%= p.pm2_env?.pm_exec_path || '' %>
+                      </td>
+                      <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-xs">
+                        <%= p.pm2_env?.env?.PORT || '-' %>
+                      </td>
+                      <td class="px-3 py-2">
+                        <span
+                          class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium <%= p.pm2_env?.status === 'online' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : p.pm2_env?.status === 'stopped' ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' %>">
+                          <%= p.pm2_env?.status || 'unknown' %>
+                        </span>
+                      </td>
+                      <td class="px-3 py-2 text-gray-600 dark:text-gray-400">
+                        <%= (p.monit?.cpu || 0).toFixed(1) %>%
+                      </td>
+                      <td class="px-3 py-2 text-gray-600 dark:text-gray-400">
+                        <%= Math.round((p.monit?.memory || 0) / 1024 / 1024) %> MB
+                      </td>
+                      <td class="px-3 py-2">
+                        <div class="flex space-x-1">
+                          <% if (p.pm2_env?.status==='online' ) { %>
+                            <button onclick="action('stop', '<%= p.name %>')"
+                              class="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs transition-colors"
+                              title="Parar">
+                              <i class="bi bi-pause-fill"></i>
+                            </button>
+                            <% } else { %>
+                              <button onclick="action('start', '<%= p.name %>')"
+                                class="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs transition-colors"
+                                title="Iniciar">
+                                <i class="bi bi-play-fill"></i>
+                              </button>
+                              <% } %>
+                                <button onclick="action('restart', '<%= p.name %>')"
+                                  class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors"
+                                  title="Reiniciar">
+                                  <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <button onclick="action('delete', '<%= p.name %>')"
+                                  class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs transition-colors"
+                                  title="Excluir">
+                                  <i class="bi bi-trash"></i>
+                                </button>
+                                <button onclick="showLogs('<%= p.name %>')"
+                                  class="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-xs transition-colors"
+                                  title="Logs">
+                                  <i class="bi bi-journal-text"></i>
+                                </button>
+                        </div>
+                      </td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+              </table>
+              <% } else { %>
+                <div class="text-center py-12">
+                  <i class="bi bi-emoji-frown text-4xl text-gray-400 dark:text-gray-500"></i>
+                  <h4 class="mt-3 text-lg font-medium text-gray-900 dark:text-white">Nenhum processo em execução</h4>
+                  <p class="mt-1 text-gray-600 dark:text-gray-400">Inicie um novo processo acima.</p>
+                </div>
+                <% } %>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-3 w-full">
+    <div class="px-4 text-center text-gray-500 dark:text-gray-400 text-xs">
+      &copy; <span id="currentYear"></span> Serve Dashboard - PM2 Manager
+    </div>
+  </footer>
+
+  <!-- Custom Toast -->
+  <div id="customToast" class="custom-toast hidden">
+    <span id="toastMessage"></span>
+    <span class="toast-close" onclick="hideToast()">&times;</span>
+  </div>
+
+  <!-- Modal: Logs -->
+  <div class="modal fade fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 modal-backdrop hidden" id="logsModal">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h3 class="text-base font-medium text-gray-900 dark:text-white flex items-center">
+            <i class="bi bi-terminal mr-2"></i>
+            Logs: <span id="logTitle" class="ml-1"></span>
+          </h3>
+          <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            onclick="closeLogsModal()">
+            <i class="bi bi-x-lg text-lg"></i>
+          </button>
+        </div>
+        <div class="p-4 overflow-auto flex-1">
+          <pre id="logContent"
+            class="bg-gray-900 text-green-400 p-3 rounded-md overflow-auto font-mono text-xs whitespace-pre-wrap min-h-[300px]"></pre>
+        </div>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+          <small class="text-gray-500 dark:text-gray-400">Atualizando a cada 3 segundos...</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Set current year
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+    // Theme management
+    const themeToggle = document.getElementById('themeToggle');
+    const htmlElement = document.documentElement;
+    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      htmlElement.classList.add('dark');
+    } else {
+      htmlElement.classList.remove('dark');
+    }
+    themeToggle.addEventListener('click', () => {
+      htmlElement.classList.toggle('dark');
+      localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    // Sidebar toggle
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+
+    const sidebarCollapse = document.getElementById('sidebarCollapse');
+    const mainContent = document.getElementById('mainContent');
+    sidebarCollapse.addEventListener('click', () => {
+      sidebar.classList.toggle('sidebar-collapsed');
+      mainContent.classList.toggle('lg:ml-0');
+      localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('sidebar-collapsed'));
+    });
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+      sidebar.classList.add('sidebar-collapsed');
+      mainContent.classList.add('lg:ml-0');
+    }
+
+    // User menu
+    const userMenuButton = document.getElementById('userMenuButton');
+    const userMenu = document.getElementById('userMenu');
+    userMenuButton.addEventListener('click', () => userMenu.classList.toggle('hidden'));
+    document.addEventListener('click', (e) => {
+      if (!userMenuButton.contains(e.target) && !userMenu.contains(e.target)) {
+        userMenu.classList.add('hidden');
+      }
+    });
+
+    // Close sidebar on mobile link click
+    sidebar.addEventListener('click', (e) => {
+      if (e.target.tagName === 'A' && window.innerWidth < 1024) {
+        sidebar.classList.remove('open');
+      }
+    });
+
+    // Toast
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('customToast');
+      document.getElementById('toastMessage').textContent = message;
+      toast.className = `custom-toast ${type}`;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+    function hideToast() {
+      document.getElementById('customToast').classList.remove('show');
+    }
+
+    // Start process form
+    document.getElementById('startForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const data = Object.fromEntries(fd);
+
+      try {
+        const res = await fetch('/api/pm2/start', {
+          method: 'POST',
+          body: JSON.stringify(data),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          showToast('✅ Processo iniciado com sucesso!', 'success');
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          showToast('❌ Erro: ' + result.error, 'danger');
+        }
+      } catch (error) {
+        showToast('❌ Falha na conexão com o servidor', 'danger');
+      }
+    });
+
+    // Process actions
+    async function action(cmd, name) {
+      if (!confirm(`⚠️ Tem certeza que deseja ${cmd} o processo "${name}"?`)) return;
+
+      try {
+        const res = await fetch(`/api/pm2/${cmd}/${name}`, { method: 'POST' });
+        const result = await res.json();
+
+        if (result.success) {
+          showToast(`✅ Processo ${name} ${cmd === 'stop' ? 'parado' : cmd === 'restart' ? 'reiniciado' : 'excluído'} com sucesso!`, 'success');
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          showToast('❌ Erro: ' + result.error, 'danger');
+        }
+      } catch (error) {
+        showToast('❌ Falha na conexão com o servidor', 'danger');
+      }
+    }
+
+    // Logs modal
+    let interval = null;
+    function showLogs(name) {
+      const title = name || 'Todos';
+      document.getElementById('logTitle').innerText = title;
+      document.getElementById('logsModal').classList.remove('hidden');
+
+      if (interval) clearInterval(interval);
+      const url = name ? `/api/pm2/logs/${name}` : '/api/pm2/logs';
+
+      const load = () => {
+        fetch(url)
+          .then(r => r.json())
+          .then(d => {
+            const logContent = document.getElementById('logContent');
+            logContent.textContent = d.logs || 'Sem logs disponíveis.';
+            logContent.scrollTop = logContent.scrollHeight;
+          })
+          .catch(() => {
+            document.getElementById('logContent').textContent = 'Erro ao carregar logs.';
+          });
+      };
+
+      load();
+      interval = setInterval(load, 3000);
+    }
+
+    function closeLogsModal() {
+      document.getElementById('logsModal').classList.add('hidden');
+      if (interval) clearInterval(interval);
+    }
+  </script>
+</body>
+
+</html>

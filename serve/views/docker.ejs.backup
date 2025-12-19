@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Serve Dashboard - Docker Compose</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.bootstrap5.css">
+  <!-- Google Fonts: Inter (mais moderna e profissional) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #1e2a4a 0%, #151d30 100%);
+      min-height: 100vh;
+      padding-bottom: 70px;
+      color: #e0e0ff;
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    }
+    .table.dataTable {
+      --bs-table-bg: #1e2a4a !important;
+      --bs-table-color: #ffffff !important;  /* texto branco */
+    }
+
+    .modal-content {
+      background: rgba(30,42,74,0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .navbar-brand {
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      font-size: 1rem;
+    }
+
+
+    .navbar-nav .nav-link {
+      font-size: 0.85rem;
+      padding: 0.4rem 0.7rem;
+    }
+
+    footer {
+      background: rgba(0,0,0,0.8);
+      color: #aaa;
+      position: fixed;
+      bottom: 0; width: 100%;
+      font-size: 0.85rem; padding: 0.6rem 0;
+    }
+    #logsModal pre,
+    #upOutputContent,
+    #editComposeContent {
+      background: #0d1117;
+      padding: 1rem; border-radius: 8px;
+      max-height: 60vh; overflow-y: auto;
+      white-space: pre-wrap;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+    }
+    #projectsTable {
+      border-collapse: separate;
+      border-spacing: 0 3px;
+      background: rgba(30,42,74,0.3);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    #projectsTable th {
+      background: rgba(30,42,74,0.6);
+      font-weight: 600; font-size: 0.95rem;
+      padding: 0.75rem 1rem; text-align: left;
+    }
+    #projectsTable td { vertical-align: middle; font-size: 0.8rem; }
+    #projectsTable tbody tr:hover { background: rgba(66,133,244,0.1) !important; }
+    .action-btn { width: 32px; height: 32px; border-radius: 6px; font-size: 1rem; }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark bg-opacity-75 shadow-sm">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center" href="/">
+        <i class="bi bi-speedometer2 me-2"></i> Serve Dashboard
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-house me-1"></i> Início</a></li>
+          <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="bi bi-terminal me-1"></i> Pm2</a></li>
+          <li class="nav-item"><a class="nav-link" href="/caddy"><i class="bi bi-globe me-1"></i> Domínios</a></li>
+          <li class="nav-item"><a class="nav-link active" href="/docker"><i class="bi-box-seam"></i> Docker</a></li>
+          <li class="nav-item"><a class="nav-link" href="/git"><i class="bi-git"></i> Git</a></li>
+          <li class="nav-item"><a class="nav-link" href="/auto"><i class="bi bi-magic me-1"></i>AutoInstall</a></li>
+          <li class="nav-item"><a class="nav-link" href="/filemanager"><i class="bi-archive"></i> File Manager</a></li>
+          <li class="nav-item"><a class="nav-link text-danger" href="/logout"><i class="bi bi-box-arrow-right me-1"></i> Sair</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Conteúdo Principal -->
+  <div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h5 class="text-white mb-0"><i class="bi bi-docker me-2"></i> Projetos Docker Compose</h5>
+      <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+        <i class="bi bi-plus"></i> Novo Projeto
+      </button>
+    </div>
+
+    <% if (locals.error) { %>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i> <%= error %>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+
+    <% if (projects.length === 0) { %>
+      <div class="text-center py-5">
+        <i class="bi bi-docker" style="font-size: 3rem; opacity: 0.3;"></i>
+        <p class="mt-3 text-muted">Nenhum projeto Docker Compose encontrado.</p>
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+          <i class="bi bi-upload"></i> Upload seu primeiro docker-compose.yml
+        </button>
+      </div>
+    <% } else { %>
+      <!-- Tabela com DataTables -->
+      <table id="projectsTable" class="table table-dark table-striped table-hover w-100">
+        <!-- Na seção thead -->
+<thead>
+  <tr>
+    <th>Projeto</th>
+    <th>Status</th>
+    <th>Portas</th> <!-- Mudei de "Porta" para "Portas" -->
+    <th width="300">Ações</th>
+  </tr>
+</thead>
+
+<!-- Na seção tbody -->
+<tbody>
+  <% projects.forEach(project => { %>
+    <tr>
+      <td><strong><%= project.name %></strong></td>
+      <td>
+        <span class="badge 
+          <%= project.status === 'running' ? 'bg-success' : project.status === 'stopped' ? 'bg-secondary' : project.status === 'not started' ? 'bg-warning' : 'bg-danger' %> 
+          text-white">
+          <%= project.status === 'running' ? 'Online' : project.status === 'stopped' ? 'Parado' : project.status === 'not started' ? 'Não Iniciado' : 'Erro' %>
+        </span>
+      </td>
+      <td>
+        <!-- 🔥 EXIBE AS PORTAS DO PROJETO -->
+        <% if (project.ports && project.ports.length > 0) { %>
+          <div class="ports-container" style="text-align-last: justify;">
+            <% project.ports.forEach(port => { %>
+              <span class="badge bg-info text-dark me-1 mb-1" title="Porta <%= port %>">
+                <i class="bi bi-door-open me-1"></i><%= port %>
+              </span>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <span class="text-muted small">Nenhuma porta exposta</span>
+        <% } %>
+      </td>
+      <td>
+        <!-- Seus botões de ação permanecem iguais -->
+        <div class="btn-group btn-group-sm" role="group" style="gap: 4px;">
+          <button class="btn btn-outline-success action-btn" onclick="showUpOutput('<%= project.name %>')" title="Iniciar">
+            <i class="bi bi-play-fill"></i>
+          </button>
+          <button class="btn btn-outline-danger action-btn" onclick="dockerAction('down', '<%= project.name %>')" title="Parar">
+            <i class="bi bi-stop-fill"></i>
+          </button>
+          <button class="btn btn-outline-warning action-btn" onclick="dockerAction('restart', '<%= project.name %>')" title="Reiniciar">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+          
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-info dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper="static" title="Mais ações">
+              <i class="bi bi-three-dots"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-dark">
+              <li><a class="dropdown-item" href="#" onclick="showLogs('<%= project.name %>')"><i class="bi bi-journal-text me-1"></i> Logs</a></li>
+              <li><a class="dropdown-item" href="#" onclick="editCompose('<%= project.name %>')"><i class="bi bi-pencil-square me-1"></i> Editar</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="#" onclick="deleteProject('<%= project.name %>')"><i class="bi bi-trash me-1"></i> Excluir</a></li>
+            </ul>
+          </div>
+        </div>
+      </td>
+    </tr>
+  <% }) %>
+</tbody>
+      </table>
+    <% } %>
+  </div>
+
+  <!-- Rodapé -->
+  <footer class="text-center">
+    <small>&copy; <%= new Date().getFullYear() %> Serve Dashboard - AnsDev</small>
+  </footer>
+
+  <!-- Modais -->
+  <!-- Modal: Upload -->
+  <div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Novo Projeto Docker Compose</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Nome do Projeto</label>
+            <input type="text" class="form-control bg-dark text-white border-secondary" id="projectName" placeholder="meu-app">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Conteúdo do docker-compose.yml</label>
+            <textarea class="form-control bg-dark text-white border-secondary" id="composeContent" rows="10" placeholder="version: '3'&#10;services:&#10;  app:&#10;    image: nginx:alpine"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="uploadCompose()">Criar Projeto</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Logs -->
+  <div class="modal fade" id="logsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Logs: <span id="logProjectName"></span></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <pre id="logContent" class="text-white">Carregando...</pre>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Saída do Up -->
+  <div class="modal fade" id="upOutputModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Iniciando: <span id="upProjectName"></span></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <pre id="upOutputContent" class="text-white"></pre>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Editar Compose -->
+  <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Editar docker-compose.yml: <span id="editProjectName"></span></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <textarea class="form-control bg-dark text-white border-secondary" id="editComposeContent" rows="15"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-success" onclick="saveCompose()">Salvar Alterações</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Serviços -->
+  <div class="modal fade" id="servicesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Serviços: <span id="servicesProjectName"></span></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="servicesList"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="button" class="btn btn-primary" onclick="refreshServices()">Atualizar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- DataTables JS -->
+  <script src="https://cdn.datatables.net/2.0.8/js/dataTables.js"></script>
+  <script src="https://cdn.datatables.net/2.0.8/js/dataTables.bootstrap5.js"></script>
+  <script src="https://cdn.datatables.net/2.0.8/js/dataTables.layout.js"></script>
+
+  <script>
+    let currentProject = '';
+    let currentServicesProject = '';
+
+    // Inicializa DataTables após o carregamento completo da página
+    document.addEventListener('DOMContentLoaded', function() {
+      const table = document.getElementById('projectsTable');
+      
+      if (table) {
+        // Aguarda um pequeno delay para garantir que a tabela foi renderizada
+        setTimeout(function() {
+          try {
+            // Inicializa o DataTable com configuração completa
+            new DataTable('#projectsTable', {
+              language: {
+                url: 'https://cdn.datatables.net/plug-ins/2.0.8/i18n/pt-BR.json',
+                search: "Buscar:",
+                lengthMenu: "Mostrar _MENU_ projetos",
+                info: "Mostrando _START_ a _END_ de _TOTAL_ projetos",
+                infoEmpty: "Mostrando 0 a 0 de 0 projetos",
+                infoFiltered: "(filtrado de _MAX_ projetos no total)",
+                paginate: {
+                  first: "<<",
+                  last: ">>",
+                  next: ">",
+                  previous: "<"
+                }
+              },
+              pageLength: 10,
+              lengthMenu: [5, 10, 25, 50, 100],
+              responsive: true,
+              order: [[0, 'asc']],
+              // Configuração de layout para garantir que os controles apareçam
+              layout: {
+                topStart: {
+                  pageLength: {
+                    menu: [5, 10, 25, 50, 100]
+                  }
+                },
+                topEnd: {
+                  search: {}
+                },
+                bottomStart: {
+                  info: {}
+                },
+                bottomEnd: {
+                  paging: {
+                    type: 'simple_numbers'
+                  }
+                }
+              },
+              columnDefs: [
+                { 
+                  orderable: false, 
+                  targets: 2, // Coluna de ações
+                  searchable: false
+                }
+              ],
+              initComplete: function() {
+                console.log('DataTables inicializado com sucesso!');
+              }
+            });
+          } catch (error) {
+            console.error('Erro ao inicializar o DataTables:', error);
+          }
+        }, 100);
+      }
+
+      // Força o dropdown a ser renderizado no body (portal)
+      document.addEventListener('show.bs.dropdown', function(e) {
+        const dropdownMenu = e.target.querySelector('.dropdown-menu');
+        if (!dropdownMenu) return;
+
+        // Salva a referência original
+        const originalParent = dropdownMenu.parentNode;
+        const originalPosition = dropdownMenu.style.position;
+
+        // Move o menu para o body
+        document.body.appendChild(dropdownMenu);
+
+        // Ajusta a posição manualmente
+        const rect = e.target.getBoundingClientRect();
+        dropdownMenu.style.position = 'absolute';
+        dropdownMenu.style.top = `${rect.bottom + window.scrollY}px`;
+        dropdownMenu.style.left = `${rect.left + window.scrollX}px`;
+        dropdownMenu.style.width = `${rect.width}px`;
+
+        // Ao esconder, retorna ao lugar original
+        e.target.addEventListener('hidden.bs.dropdown', function() {
+          originalParent.appendChild(dropdownMenu);
+          dropdownMenu.style.position = originalPosition;
+        }, { once: true });
+      });
+    });
+
+    // --- FUNÇÕES ORIGINAIS (100% funcionais) ---
+
+    async function dockerAction(action, project) {
+      const btn = event.target;
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+
+      try {
+        const res = await fetch(`/api/docker/${action}/${project}`, { method: 'POST' });
+        const data = await res.json();
+
+        if (data.success) {
+          alert(data.message);
+          location.reload();
+        } else {
+          alert('Erro: ' + (data.error || 'Desconhecido'));
+        }
+      } catch (err) {
+        alert('Erro de conexão: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
+    }
+
+    async function showLogs(project) {
+      document.getElementById('logProjectName').textContent = project;
+      document.getElementById('logContent').textContent = 'Carregando logs...';
+      const modal = new bootstrap.Modal(document.getElementById('logsModal'));
+      modal.show();
+
+      try {
+        const res = await fetch(`/api/docker/logs/${project}`);
+        const data = await res.json();
+        document.getElementById('logContent').textContent = data.success ? data.logs : 'Erro: ' + data.logs;
+      } catch (err) {
+        document.getElementById('logContent').textContent = 'Erro ao carregar logs: ' + err.message;
+      }
+    }
+
+    async function uploadCompose() {
+      const name = document.getElementById('projectName').value.trim();
+      const content = document.getElementById('composeContent').value.trim();
+
+      if (!name || !content) {
+        alert('Preencha todos os campos.');
+        return;
+      }
+
+      const btn = event.target;
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Enviando...';
+
+      try {
+        const res = await fetch('/api/docker/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectName: name, composeContent: content })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          alert(data.message);
+          location.reload();
+        } else {
+          alert('Erro: ' + data.error);
+        }
+      } catch (err) {
+        alert('Erro: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
+    }
+
+    async function showUpOutput(project) {
+      document.getElementById('upProjectName').textContent = project;
+      document.getElementById('upOutputContent').textContent = '';
+      const modal = new bootstrap.Modal(document.getElementById('upOutputModal'));
+      modal.show();
+
+      const outputDiv = document.getElementById('upOutputContent');
+      const eventSource = new EventSource(`/api/docker/up-stream/${project}`);
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.status === 'output' || data.status === 'error') {
+          outputDiv.textContent += data.message;
+          outputDiv.scrollTop = outputDiv.scrollHeight;
+        } else if (data.status === 'success') {
+          outputDiv.textContent += '\n\n✅ ' + data.message;
+          eventSource.close();
+        } else if (data.status === 'failed') {
+          outputDiv.textContent += '\n\n❌ ' + data.message;
+          eventSource.close();
+        }
+      };
+
+      eventSource.onerror = () => {
+        outputDiv.textContent += '\n\n❌ Erro de conexão com o servidor.';
+        eventSource.close();
+      };
+
+      modal._element.addEventListener('hidden.bs.modal', () => {
+        eventSource.close();
+      });
+    }
+
+    async function editCompose(project) {
+      currentProject = project;
+      document.getElementById('editProjectName').textContent = project;
+      document.getElementById('editComposeContent').value = 'Carregando...';
+
+      const modal = new bootstrap.Modal(document.getElementById('editModal'));
+      modal.show();
+
+      try {
+        const res = await fetch(`/api/docker/compose/${project}`);
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('editComposeContent').value = data.content;
+        } else {
+          document.getElementById('editComposeContent').value = '# ERRO: ' + data.error;
+        }
+      } catch (err) {
+        document.getElementById('editComposeContent').value = '# ERRO DE CONEXÃO: ' + err.message;
+      }
+    }
+
+    async function saveCompose() {
+      const content = document.getElementById('editComposeContent').value;
+      const btn = event.target;
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Salvando...';
+
+      try {
+        const res = await fetch(`/api/docker/compose/${currentProject}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          alert('✅ Arquivo salvo com sucesso!');
+          bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+          location.reload();
+        } else {
+          alert('❌ Erro ao salvar: ' + data.error);
+        }
+      } catch (err) {
+        alert('Erro de conexão: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
+    }
+
+    async function deleteProject(project) {
+      if (!confirm(`Tem certeza que deseja excluir o projeto "${project}"? Esta ação é irreversível.`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/docker/delete/${project}`, { method: 'POST' });
+        const data = await res.json();
+
+        if (data.success) {
+          alert(data.message);
+          location.reload();
+        } else {
+          alert('Erro: ' + data.error);
+        }
+      } catch (err) {
+        alert('Erro de conexão: ' + err.message);
+      }
+    }
+
+    function openRealTerminal(project) {
+      fetch(`/api/docker/services/${project}`)
+        .then(r => r.json())
+        .then(data => {
+          if (!data.success || data.services.length === 0) {
+            alert('Nenhum serviço ativo encontrado.');
+            return;
+          }
+
+          const serviceNames = data.services.map(s => s.name);
+          const service = prompt(
+            'Escolha o serviço:\n' + serviceNames.join('\n'),
+            serviceNames[0]
+          );
+
+          if (!service) return;
+
+          const shell = prompt('Escolha o shell:', 'bash') || 'bash';
+          if (!shell) return;
+
+          const url = `/docker/terminal/${project}?service=${encodeURIComponent(service)}&shell=${encodeURIComponent(shell)}`;
+          window.open(url, '_blank', 'width=900,height=700,menubar=no,toolbar=no');
+        })
+        .catch(err => {
+          alert('Erro ao carregar serviços: ' + err.message);
+        });
+    }
+
+    async function checkServices(project) {
+      currentServicesProject = project;
+      document.getElementById('servicesProjectName').textContent = project;
+      document.getElementById('servicesList').innerHTML = '<p>Carregando...</p>';
+      
+      const modal = new bootstrap.Modal(document.getElementById('servicesModal'));
+      modal.show();
+      
+      await loadServices(project);
+    }
+
+    async function loadServices(project) {
+      try {
+        const res = await fetch(`/api/docker/services/${project}`);
+        const data = await res.json();
+        
+        const servicesList = document.getElementById('servicesList');
+        
+        if (data.success && data.services && data.services.length > 0) {
+          servicesList.innerHTML = data.services.map(service => `
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-bottom">
+              <div>
+                <span class="fw-bold d-block">${service.name}</span>
+                <small class="text-muted service-status">${service.statusText || service.status || 'unknown'}</small>
+              </div>
+              <span class="badge ${getStatusBadgeClass(service.status)}">
+                ${getStatusDisplayText(service.status)}
+              </span>
+            </div>
+          `).join('');
+        } else {
+          servicesList.innerHTML = '<p class="text-muted">Nenhum serviço encontrado.</p>';
+        }
+      } catch (err) {
+        document.getElementById('servicesList').innerHTML = '<p class="text-danger">Erro ao carregar serviços: ' + err.message + '</p>';
+      }
+    }
+
+    function getStatusBadgeClass(status) {
+      const statusLower = (status || '').toLowerCase();
+      if (statusLower.includes('running') || statusLower.includes('healthy')) return 'bg-success';
+      if (statusLower.includes('exited') || statusLower.includes('stop') || statusLower.includes('not running') || statusLower.includes('unhealthy')) return 'bg-danger';
+      if (statusLower.includes('paused') || statusLower.includes('not started')) return 'bg-warning';
+      if (statusLower.includes('restarting')) return 'bg-info';
+      return 'bg-secondary';
+    }
+    // 🔥 FUNÇÃO PARA EXTRAIR PORTAS EM USO PELOS CONTAINERS
+    async function extractRunningPorts(projectName) {
+      try {
+        const projectDir = path.join(DOCKER_PROJECTS_DIR, projectName);
+        
+        const { stdout } = await new Promise((resolve, reject) => {
+          require('child_process').exec(
+            `cd "${projectDir}" && docker-compose port --all`,
+            (error, stdout, stderr) => {
+              if (error) reject(new Error(stderr || 'Erro ao obter portas'));
+              else resolve({ stdout });
+            }
+          );
+        });
+        
+        const ports = [];
+        const lines = stdout.trim().split('\n').filter(line => line.trim() !== '');
+        
+        lines.forEach(line => {
+          const match = line.match(/:(\d+)$/);
+          if (match) {
+            const port = match[1];
+            if (!ports.includes(port)) {
+              ports.push(port);
+            }
+          }
+        });
+        
+        return ports;
+      } catch (error) {
+        console.error('Erro ao extrair portas em uso de', projectName, ':', error.message);
+        // Fallback para portas do compose file
+        return await extractPortsFromCompose(projectName);
+      }
+    }
+
+    function getStatusDisplayText(status) {
+      const statusLower = (status || '').toLowerCase();
+      if (statusLower.includes('running')) return 'Online';
+      if (statusLower.includes('healthy')) return 'Healthy';
+      if (statusLower.includes('exited') || statusLower.includes('stopped') || statusLower.includes('not running')) return 'Parado';
+      if (statusLower.includes('paused')) return 'Pausado';
+      if (statusLower.includes('restarting')) return 'Reiniciando';
+      if (statusLower.includes('unhealthy')) return 'Unhealthy';
+      return 'Desconhecido';
+    }
+
+    async function refreshServices() {
+      if (currentServicesProject) {
+        await loadServices(currentServicesProject);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+:80 {
+	handle /* {
+		# Raiz base onde estão todas as pastas (orkut, facebook, etc.)
+		root * /home/ans/Documentos/serve-node/Projects/www
+
+		# ✅ Tenta servir:
+		#   /orkut          → /orkut/index.php ou /orkut/index.html
+		#   /orkut/         → idem
+		#   /orkut/post.php → /orkut/post.php
+		try_files {path}/index.php {path}/index.html {path} =404
+
+		php_fastcgi unix//var/run/php/php8.3-fpm.sock
+		file_server
+	}
+}

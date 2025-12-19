@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Serve Dashboard - Docker Compose</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          fontSize: {
+            'xs': ['0.75rem', { lineHeight: '1rem' }],
+            'sm': ['0.8125rem', { lineHeight: '1.25rem' }],
+            'base': ['0.875rem', { lineHeight: '1.5rem' }],
+            'lg': ['1rem', { lineHeight: '1.75rem' }],
+            'xl': ['1.125rem', { lineHeight: '1.75rem' }],
+            '2xl': ['1.25rem', { lineHeight: '2rem' }],
+          },
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .sidebar {
+      transition: all 0.3s ease;
+    }
+
+    .sidebar-collapsed {
+      width: 4rem !important;
+    }
+
+    .sidebar-collapsed .sidebar-text {
+      display: none !important;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+    }
+
+    .custom-toast {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1050;
+      max-width: 350px;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      color: white;
+      font-size: 0.875rem;
+      font-weight: 500;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .custom-toast.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .custom-toast.success {
+      background-color: #10b981;
+    }
+
+    .custom-toast.danger {
+      background-color: #ef4444;
+    }
+
+    .custom-toast.warning {
+      background-color: #f59e0b;
+    }
+
+    .custom-toast.info {
+      background-color: #3b82f6;
+    }
+
+    .toast-close {
+      margin-left: 0.75rem;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    .toast-close:hover {
+      opacity: 1;
+    }
+
+    .modal-backdrop {
+      backdrop-filter: blur(4px);
+    }
+  </style>
+</head>
+
+<body
+  class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col justify-between text-sm">
+  <div class="flex flex-col flex-1">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <div class="flex items-center justify-between px-4 py-2">
+        <div class="flex items-center">
+          <button id="sidebarToggle"
+            class="lg:hidden mr-3 p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="bi bi-list text-lg"></i>
+          </button>
+          <button id="sidebarCollapse"
+            class="hidden lg:flex mr-3 p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="bi bi-layout-sidebar text-lg"></i>
+          </button>
+          <div class="flex items-center">
+            <i class="bi bi-hdd-stack text-xl text-primary-600 dark:text-primary-400 mr-2"></i>
+            <h1 class="text-lg font-bold text-gray-900 dark:text-white">Serve Dashboard</h1>
+          </div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button id="themeToggle"
+            class="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+            <i class="bi bi-sun hidden dark:block text-sm"></i>
+            <i class="bi bi-moon block dark:hidden text-sm"></i>
+          </button>
+          <div class="relative">
+            <button id="userMenuButton"
+              class="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+              <div
+                class="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center text-white font-medium text-sm">
+                <i class="bi bi-person"></i>
+              </div>
+            </button>
+            <div id="userMenu"
+              class="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 hidden border border-gray-200 dark:border-gray-700">
+              <a href="/"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-house mr-2"></i>Início
+              </a>
+              <a href="/dashboard"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-terminal mr-2"></i>Node
+              </a>
+              <a href="/caddy"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-globe mr-2"></i>Domínios
+              </a>
+              <a href="/docker"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300">
+                <i class="bi bi-box-seam mr-2"></i>Docker
+              </a>
+              <a href="/git"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-git mr-2"></i>Git
+              </a>
+              <a href="/auto"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-rocket-takeoff mr-2"></i>AutoInstall
+              </a>
+              <a href="/composer"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box mr-2"></i>Composer
+              </a>
+              <a href="/filemanager"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-archive mr-2"></i>File Manager
+              </a>
+              <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+              <a href="/logout"
+                class="block px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box-arrow-right mr-2"></i>Sair
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex">
+      <!-- Sidebar -->
+      <aside id="sidebar"
+        class="sidebar w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-[calc(100vh-49px)] fixed lg:static z-20 transition-all duration-300">
+        <nav class="p-3">
+          <ul class="space-y-1">
+            <li>
+              <a href="/"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-house mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Início</span>
+              </a>
+            </li>
+            <li>
+              <a href="/dashboard"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-terminal mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Node</span>
+              </a>
+            </li>
+            <li>
+              <a href="/caddy"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-globe mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Domínios</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docker"
+                class="flex items-center px-3 py-1.5 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded-lg text-sm">
+                <i class="bi bi-box-seam mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Docker</span>
+              </a>
+            </li>
+            <li>
+              <a href="/git"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-git mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Git</span>
+              </a>
+            </li>
+            <li>
+              <a href="/auto"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-rocket-takeoff mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">AutoInstall</span>
+              </a>
+            </li>
+            <li>
+              <a href="/composer"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-box mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Composer</span>
+              </a>
+            </li>
+            <li>
+              <a href="/filemanager"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-archive mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">File Manager</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- Main Content -->
+      <main id="mainContent" class="flex-1 p-4 transition-all duration-300">
+        <div class="mb-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                <i class="bi bi-box-seam mr-2 text-primary-600 dark:text-primary-400"></i>
+                Projetos Docker Compose
+              </h2>
+              <p class="text-gray-600 dark:text-gray-400 mt-0.5 text-sm">Gerencie seus projetos Docker Compose</p>
+            </div>
+            <button onclick="showUploadModal()"
+              class="flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded text-sm font-medium transition-colors">
+              <i class="bi bi-plus-lg mr-1.5"></i>
+              Novo Projeto
+            </button>
+          </div>
+        </div>
+
+        <% if (locals.error) { %>
+          <div
+            class="bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4">
+            <i class="bi bi-exclamation-triangle mr-2"></i>
+            <%= error %>
+          </div>
+          <% } %>
+
+            <!-- Projects Table -->
+            <div
+              class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <% if (projects.length===0) { %>
+                <div class="text-center py-12">
+                  <i class="bi bi-box-seam text-4xl text-gray-400 dark:text-gray-500"></i>
+                  <h4 class="mt-3 text-lg font-medium text-gray-900 dark:text-white">Nenhum projeto Docker Compose
+                    encontrado</h4>
+                  <p class="mt-1 text-gray-600 dark:text-gray-400">Crie seu primeiro projeto para começar.</p>
+                </div>
+                <% } else { %>
+                  <div class="p-3">
+                    <table class="w-full">
+                      <thead>
+                        <tr>
+                          <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Projeto</th>
+                          <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Status</th>
+                          <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Portas</th>
+                          <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        <% projects.forEach(project=> { %>
+                          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">
+                              <%= project.name %>
+                            </td>
+                            <td class="px-3 py-2">
+                              <span
+                                class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium <%=project.status === 'running' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : project.status === 'stopped' ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400' : project.status === 'not started' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' %>">
+                                <%= project.status==='running' ? 'Online' : project.status==='stopped' ? 'Parado' :
+                                  project.status==='not started' ? 'Não Iniciado' : 'Erro' %>
+                              </span>
+                            </td>
+                            <td class="px-3 py-2">
+                              <% if (project.ports && project.ports.length> 0) { %>
+                                <div class="flex flex-wrap gap-1">
+                                  <% project.ports.forEach(port=> { %>
+                                    <span
+                                      class="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs">
+                                      <i class="bi bi-door-open mr-1"></i>
+                                      <%= port %>
+                                    </span>
+                                    <% }) %>
+                                </div>
+                                <% } else { %>
+                                  <span class="text-gray-500 text-xs">-</span>
+                                  <% } %>
+                            </td>
+                            <td class="px-3 py-2">
+                              <div class="flex items-center gap-1">
+                                <button onclick="showUpOutput('<%= project.name %>')"
+                                  class="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs transition-colors"
+                                  title="Iniciar">
+                                  <i class="bi bi-play-fill"></i>
+                                </button>
+                                <button onclick="dockerAction('down', '<%= project.name %>')"
+                                  class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs transition-colors"
+                                  title="Parar">
+                                  <i class="bi bi-stop-fill"></i>
+                                </button>
+                                <button onclick="dockerAction('restart', '<%= project.name %>')"
+                                  class="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs transition-colors"
+                                  title="Reiniciar">
+                                  <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <div class="relative inline-block">
+                                  <button onclick="toggleDropdown('<%= project.name %>')"
+                                    class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors">
+                                    <i class="bi bi-three-dots"></i>
+                                  </button>
+                                  <div id="dropdown-<%= project.name %>"
+                                    class="hidden absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 border border-gray-200 dark:border-gray-700">
+                                    <a href="#" onclick="showLogs('<%= project.name %>')"
+                                      class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                      <i class="bi bi-journal-text mr-2"></i>Logs
+                                    </a>
+                                    <a href="#" onclick="editCompose('<%= project.name %>')"
+                                      class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                      <i class="bi bi-pencil-square mr-2"></i>Editar
+                                    </a>
+                                    <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                                    <a href="#" onclick="deleteProject('<%= project.name %>')"
+                                      class="block px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                      <i class="bi bi-trash mr-2"></i>Excluir
+                                    </a>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                          <% }) %>
+                      </tbody>
+                    </table>
+                  </div>
+                  <% } %>
+            </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-3 w-full">
+    <div class="px-4 text-center text-gray-500 dark:text-gray-400 text-xs">
+      &copy; <span id="currentYear"></span> Serve Dashboard - Docker Manager
+    </div>
+  </footer>
+
+  <!-- Custom Toast -->
+  <div id="customToast" class="custom-toast hidden">
+    <span id="toastMessage"></span>
+    <span class="toast-close" onclick="hideToast()">&times;</span>
+  </div>
+
+  <!-- Modal: Upload -->
+  <div class="modal fade fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 modal-backdrop hidden"
+    id="uploadModal">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h3 class="text-base font-medium text-gray-900 dark:text-white">Novo Projeto Docker Compose</h3>
+          <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            onclick="closeUploadModal()">
+            <i class="bi bi-x-lg text-lg"></i>
+          </button>
+        </div>
+        <div class="p-4">
+          <div class="mb-3">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome do Projeto</label>
+            <input type="text" id="projectName"
+              class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="meu-app">
+          </div>
+          <div class="mb-3">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Conteúdo do
+              docker-compose.yml</label>
+            <textarea id="composeContent"
+              class="w-full px-3 py-2 bg-gray-900 text-gray-100 border border-gray-600 rounded-md font-mono text-xs focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              rows="10" placeholder="version: '3'&#10;services:&#10;  app:&#10;    image: nginx:alpine"></textarea>
+          </div>
+        </div>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-2">
+          <button type="button"
+            class="px-3 py-1.5 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+            onclick="closeUploadModal()">
+            Cancelar
+          </button>
+          <button type="button"
+            class="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded text-sm transition-colors"
+            onclick="uploadCompose()">
+            Criar Projeto
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Logs -->
+  <div class="modal fade fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 modal-backdrop hidden" id="logsModal">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h3 class="text-base font-medium text-gray-900 dark:text-white">Logs: <span id="logProjectName"></span></h3>
+          <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            onclick="closeLogsModal()">
+            <i class="bi bi-x-lg text-lg"></i>
+          </button>
+        </div>
+        <div class="p-4">
+          <pre id="logContent"
+            class="bg-gray-900 text-green-400 p-3 rounded-md overflow-auto font-mono text-xs max-h-96 whitespace-pre-wrap">Carregando...</pre>
+        </div>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+          <button type="button"
+            class="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm transition-colors"
+            onclick="closeLogsModal()">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Up Output -->
+  <div class="modal fade fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 modal-backdrop hidden"
+    id="upOutputModal">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h3 class="text-base font-medium text-gray-900 dark:text-white">Iniciando: <span id="upProjectName"></span>
+          </h3>
+          <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            onclick="closeUpOutputModal()">
+            <i class="bi bi-x-lg text-lg"></i>
+          </button>
+        </div>
+        <div class="p-4">
+          <pre id="upOutputContent"
+            class="bg-gray-900 text-white p-3 rounded-md overflow-auto font-mono text-xs max-h-96 whitespace-pre-wrap"></pre>
+        </div>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+          <button type="button"
+            class="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm transition-colors"
+            onclick="closeUpOutputModal()">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Compose -->
+  <div class="modal fade fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 modal-backdrop hidden" id="editModal">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h3 class="text-base font-medium text-gray-900 dark:text-white">Editar docker-compose.yml: <span
+              id="editProjectName"></span></h3>
+          <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            onclick="closeEditModal()">
+            <i class="bi bi-x-lg text-lg"></i>
+          </button>
+        </div>
+        <div class="p-4">
+          <textarea id="editComposeContent"
+            class="w-full px-3 py-2 bg-gray-900 text-gray-100 border border-gray-600 rounded-md font-mono text-xs focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            rows="15"></textarea>
+        </div>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-2">
+          <button type="button"
+            class="px-3 py-1.5 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+            onclick="closeEditModal()">
+            Cancelar
+          </button>
+          <button type="button"
+            class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition-colors"
+            onclick="saveCompose()">
+            Salvar Alterações
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    // Set current year
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+    // Theme management
+    const themeToggle = document.getElementById('themeToggle');
+    const htmlElement = document.documentElement;
+    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      htmlElement.classList.add('dark');
+    } else {
+      htmlElement.classList.remove('dark');
+    }
+    themeToggle.addEventListener('click', () => {
+      htmlElement.classList.toggle('dark');
+      localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    // Sidebar toggle
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+
+    const sidebarCollapse = document.getElementById('sidebarCollapse');
+    const mainContent = document.getElementById('mainContent');
+    sidebarCollapse.addEventListener('click', () => {
+      sidebar.classList.toggle('sidebar-collapsed');
+      mainContent.classList.toggle('lg:ml-0');
+      localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('sidebar-collapsed'));
+    });
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+      sidebar.classList.add('sidebar-collapsed');
+      mainContent.classList.add('lg:ml-0');
+    }
+
+    // User menu
+    const userMenuButton = document.getElementById('userMenuButton');
+    const userMenu = document.getElementById('userMenu');
+    userMenuButton.addEventListener('click', () => userMenu.classList.toggle('hidden'));
+    document.addEventListener('click', (e) => {
+      if (!userMenuButton.contains(e.target) && !userMenu.contains(e.target)) {
+        userMenu.classList.add('hidden');
+      }
+    });
+
+    // Close sidebar on mobile link click
+    sidebar.addEventListener('click', (e) => {
+      if (e.target.tagName === 'A' && window.innerWidth < 1024) {
+        sidebar.classList.remove('open');
+      }
+    });
+
+    // Toast
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('customToast');
+      document.getElementById('toastMessage').textContent = message;
+      toast.className = `custom-toast ${type}`;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+    function hideToast() {
+      document.getElementById('customToast').classList.remove('show');
+    }
+
+    // Dropdown toggle
+    function toggleDropdown(name) {
+      event.stopPropagation();
+      const dropdown = document.getElementById(`dropdown-${name}`);
+      document.querySelectorAll('[id^="dropdown-"]').forEach(d => {
+        if (d !== dropdown) d.classList.add('hidden');
+      });
+      dropdown.classList.toggle('hidden');
+    }
+    document.addEventListener('click', () => {
+      document.querySelectorAll('[id^="dropdown-"]').forEach(d => d.classList.add('hidden'));
+    });
+
+    // Modal functions
+    function showUploadModal() {
+      document.getElementById('uploadModal').classList.remove('hidden');
+    }
+    function closeUploadModal() {
+      document.getElementById('uploadModal').classList.add('hidden');
+    }
+    function closeLogsModal() {
+      document.getElementById('logsModal').classList.add('hidden');
+    }
+    function closeUpOutputModal() {
+      document.getElementById('upOutputModal').classList.add('hidden');
+    }
+    function closeEditModal() {
+      document.getElementById('editModal').classList.add('hidden');
+    }
+
+    // Docker actions
+    let currentProject = '';
+
+    async function dockerAction(action, project) {
+      const btn = event.target.closest('button');
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="animate-spin">⏳</span>';
+
+      try {
+        const res = await fetch(`/api/docker/${action}/${project}`, { method: 'POST' });
+        const data = await res.json();
+
+        if (data.success) {
+          showToast(data.message, 'success');
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          showToast('Erro: ' + (data.error || 'Desconhecido'), 'danger');
+        }
+      } catch (err) {
+        showToast('Erro de conexão: ' + err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
+    }
+
+    async function showLogs(project) {
+      event.preventDefault();
+      document.getElementById('logProjectName').textContent = project;
+      document.getElementById('logContent').textContent = 'Carregando logs...';
+      document.getElementById('logsModal').classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/docker/logs/${project}`);
+        const data = await res.json();
+        document.getElementById('logContent').textContent = data.success ? data.logs : 'Erro: ' + data.logs;
+      } catch (err) {
+        document.getElementById('logContent').textContent = 'Erro ao carregar logs: ' + err.message;
+      }
+    }
+
+    async function uploadCompose() {
+      const name = document.getElementById('projectName').value.trim();
+      const content = document.getElementById('composeContent').value.trim();
+
+      if (!name || !content) {
+        showToast('Preencha todos os campos.', 'warning');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/docker/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectName: name, composeContent: content })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          showToast(data.message, 'success');
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          showToast('Erro: ' + data.error, 'danger');
+        }
+      } catch (err) {
+        showToast('Erro: ' + err.message, 'danger');
+      }
+    }
+
+    async function showUpOutput(project) {
+      document.getElementById('upProjectName').textContent = project;
+      document.getElementById('upOutputContent').textContent = '';
+      document.getElementById('upOutputModal').classList.remove('hidden');
+
+      const outputDiv = document.getElementById('upOutputContent');
+      const eventSource = new EventSource(`/api/docker/up-stream/${project}`);
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.status === 'output' || data.status === 'error') {
+          outputDiv.textContent += data.message;
+          outputDiv.scrollTop = outputDiv.scrollHeight;
+        } else if (data.status === 'success') {
+          outputDiv.textContent += '\n\n✅ ' + data.message;
+          eventSource.close();
+          setTimeout(() => location.reload(), 2000);
+        } else if (data.status === 'failed') {
+          outputDiv.textContent += '\n\n❌ ' + data.message;
+          eventSource.close();
+        }
+      };
+
+      eventSource.onerror = () => {
+        outputDiv.textContent += '\n\n❌ Erro de conexão com o servidor.';
+        eventSource.close();
+      };
+    }
+
+    async function editCompose(project) {
+      event.preventDefault();
+      currentProject = project;
+      document.getElementById('editProjectName').textContent = project;
+      document.getElementById('editComposeContent').value = 'Carregando...';
+      document.getElementById('editModal').classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/docker/compose/${project}`);
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('editComposeContent').value = data.content;
+        } else {
+          document.getElementById('editComposeContent').value = '# ERRO: ' + data.error;
+        }
+      } catch (err) {
+        document.getElementById('editComposeContent').value = '# ERRO DE CONEXÃO: ' + err.message;
+      }
+    }
+
+    async function saveCompose() {
+      const content = document.getElementById('editComposeContent').value;
+
+      try {
+        const res = await fetch(`/api/docker/compose/${currentProject}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          showToast('✅ Arquivo salvo com sucesso!', 'success');
+          closeEditModal();
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          showToast('❌ Erro ao salvar: ' + data.error, 'danger');
+        }
+      } catch (err) {
+        showToast('Erro de conexão: ' + err.message, 'danger');
+      }
+    }
+
+    async function deleteProject(project) {
+      event.preventDefault();
+      if (!confirm(`Tem certeza que deseja excluir o projeto "${project}"? Esta ação é irreversível.`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/docker/delete/${project}`, { method: 'POST' });
+        const data = await res.json();
+
+        if (data.success) {
+          showToast(data.message, 'success');
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          showToast('Erro: ' + data.error, 'danger');
+        }
+      } catch (err) {
+        showToast('Erro de conexão: ' + err.message, 'danger');
+      }
+    }
+  </script>
+</body>
+
+</html>

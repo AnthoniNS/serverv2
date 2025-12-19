@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Serve Dashboard - Auto WordPress</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <!-- List.js (usado no Composer, opcional mas compatível) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/2.3.1/list.min.js"></script>
+  <!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          fontSize: {
+            'xs': ['0.75rem', { lineHeight: '1rem' }],
+            'sm': ['0.8125rem', { lineHeight: '1.25rem' }],
+            'base': ['0.875rem', { lineHeight: '1.5rem' }],
+            'lg': ['1rem', { lineHeight: '1.75rem' }],
+            'xl': ['1.125rem', { lineHeight: '1.75rem' }],
+            '2xl': ['1.25rem', { lineHeight: '2rem' }],
+          },
+          spacing: {
+            '18': '4.5rem',
+            '88': '22rem',
+          },
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+            dark: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              300: '#cbd5e1',
+              400: '#94a3b8',
+              500: '#64748b',
+              600: '#475569',
+              700: '#334155',
+              800: '#1e293b',
+              900: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --primary-color: #0ea5e9;
+      --primary-hover: #0284c7;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.6875rem;
+      font-weight: 500;
+    }
+
+    .status-badge.success {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: rgb(6, 95, 70);
+    }
+
+    .dark .status-badge.success {
+      background-color: rgba(16, 185, 129, 0.2);
+      color: rgb(110, 231, 183);
+    }
+
+    .status-badge.warning {
+      background-color: rgba(245, 158, 11, 0.1);
+      color: rgb(146, 64, 14);
+    }
+
+    .dark .status-badge.warning {
+      background-color: rgba(245, 158, 11, 0.2);
+      color: rgb(253, 186, 116);
+    }
+
+    .status-badge.error {
+      background-color: rgba(239, 68, 68, 0.1);
+      color: rgb(153, 27, 27);
+    }
+
+    .dark .status-badge.error {
+      background-color: rgba(239, 68, 68, 0.2);
+      color: rgb(252, 165, 165);
+    }
+
+    .modal-backdrop {
+      backdrop-filter: blur(4px);
+    }
+
+    .sidebar {
+      transition: all 0.3s ease;
+    }
+
+    .sidebar-collapsed {
+      width: 4rem !important;
+    }
+
+    .sidebar-collapsed .sidebar-text {
+      display: none !important;
+    }
+
+    .dropdown-action {
+      transition: all 0.15s ease;
+      font-size: 0.8125rem;
+    }
+
+    .dropdown-action:hover {
+      background-color: rgba(59, 130, 246, 0.1);
+    }
+
+    .dark .dropdown-action:hover {
+      background-color: rgba(59, 130, 246, 0.2);
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+    }
+
+    /* Toast personalizado (substitui o BS Toast) */
+    .custom-toast {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1050;
+      max-width: 350px;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      color: white;
+      font-size: 0.875rem;
+      font-weight: 500;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .custom-toast.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .custom-toast.success {
+      background-color: #10b981;
+    }
+
+    .custom-toast.danger {
+      background-color: #ef4444;
+    }
+
+    .custom-toast.warning {
+      background-color: #f59e0b;
+    }
+
+    .custom-toast.info {
+      background-color: #3b82f6;
+    }
+
+    .toast-close {
+      margin-left: 0.75rem;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    .toast-close:hover {
+      opacity: 1;
+    }
+  </style>
+</head>
+
+<body
+  class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col justify-between text-sm">
+  <!-- Container principal do conteúdo -->
+  <div class="flex flex-col flex-1">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <div class="flex items-center justify-between px-4 py-2">
+        <div class="flex items-center">
+          <button id="sidebarToggle"
+            class="lg:hidden mr-3 p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="bi bi-list text-lg"></i>
+          </button>
+          <button id="sidebarCollapse"
+            class="hidden lg:flex mr-3 p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="bi bi-layout-sidebar text-lg"></i>
+          </button>
+          <div class="flex items-center">
+            <i class="bi bi-speedometer2 text-xl text-primary-600 dark:text-primary-400 mr-2"></i>
+            <h1 class="text-lg font-bold text-gray-900 dark:text-white">Serve Dashboard</h1>
+          </div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <!-- Theme Toggle -->
+          <button id="themeToggle"
+            class="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+            <i class="bi bi-sun hidden dark:block text-sm"></i>
+            <i class="bi bi-moon block dark:hidden text-sm"></i>
+          </button>
+          <!-- User Menu -->
+          <div class="relative">
+            <button id="userMenuButton"
+              class="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+              <div
+                class="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center text-white font-medium text-sm">
+                <i class="bi bi-person"></i>
+              </div>
+            </button>
+            <!-- Dropdown Menu -->
+            <div id="userMenu"
+              class="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 hidden border border-gray-200 dark:border-gray-700">
+              <a href="/"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-house mr-2"></i>Início
+              </a>
+              <a href="/dashboard"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-terminal mr-2"></i>Node
+              </a>
+              <a href="/caddy"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-globe mr-2"></i>Domínios
+              </a>
+              <a href="/docker"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box-seam mr-2"></i>Docker
+              </a>
+              <a href="/git"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-git mr-2"></i>Git
+              </a>
+              <a href="/auto"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300">
+                <i class="bi bi-rocket-takeoff mr-2"></i>AutoInstall
+              </a>
+              <a href="/composer"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box mr-2"></i>Composer
+              </a>
+              <a href="/filemanager"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-archive mr-2"></i>File Manager
+              </a>
+              <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+              <a href="/logout"
+                class="block px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box-arrow-right mr-2"></i>Sair
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex">
+      <!-- Sidebar -->
+      <aside id="sidebar"
+        class="sidebar w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-[calc(100vh-49px)] fixed lg:static z-20 transition-all duration-300">
+        <nav class="p-3">
+          <ul class="space-y-1">
+            <li>
+              <a href="/"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-house mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Início</span>
+              </a>
+            </li>
+            <li>
+              <a href="/dashboard"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-terminal mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Node</span>
+              </a>
+            </li>
+            <li>
+              <a href="/caddy"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-globe mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Domínios</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docker"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-box-seam mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Docker</span>
+              </a>
+            </li>
+            <li>
+              <a href="/git"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-git mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Git</span>
+              </a>
+            </li>
+            <li>
+              <a href="/auto"
+                class="flex items-center px-3 py-1.5 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded-lg text-sm">
+                <i class="bi bi-rocket-takeoff mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">AutoInstall</span>
+              </a>
+            </li>
+            <li>
+              <a href="/composer"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-box mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Composer</span>
+              </a>
+            </li>
+            <li>
+              <a href="/filemanager"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-archive mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">File Manager</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+      <!-- Main Content -->
+      <main id="mainContent" class="flex-1 p-4 transition-all duration-300">
+        <div class="mb-4">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+            <i class="bi bi-wordpress mr-2 text-primary-600 dark:text-primary-400"></i>
+            Meus Sites WordPress
+          </h2>
+          <p class="text-gray-600 dark:text-gray-400 mt-0.5 text-sm">Gerencie seus sites WordPress instalados
+            automaticamente</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-3 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center">
+              <div class="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 mr-3">
+                <i class="bi bi-globe2 text-lg"></i>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-gray-600 dark:text-gray-400">Total de Sites</p>
+                <p class="text-xl font-bold text-gray-900 dark:text-white" id="totalSites">0</p>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-3 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center">
+              <div class="p-2 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 mr-3">
+                <i class="bi bi-file-code text-lg"></i>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-gray-600 dark:text-gray-400">wp-config editados</p>
+                <p class="text-xl font-bold text-gray-900 dark:text-white" id="configsEdited">0</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sites Table -->
+        <div
+          class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div
+            class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3 justify-between items-center">
+            <h3 class="text-base font-medium text-gray-900 dark:text-white">Lista de Sites</h3>
+            <button onclick="newSiteModal()"
+              class="flex items-center px-2.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded text-sm font-medium transition-colors">
+              <i class="bi bi-plus-lg mr-1.5"></i>
+              Novo Site
+            </button>
+          </div>
+          <div class="p-3">
+            <div class="flex items-center justify-between mb-3 gap-3">
+              <div class="flex items-center gap-2">
+                <label for="perPageSelect" class="text-sm text-gray-600 dark:text-gray-400">Itens por página:</label>
+                <select id="perPageSelect"
+                  class="px-2 py-1 rounded bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm">
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                </select>
+              </div>
+              <div class="flex items-center gap-2 w-full max-w-sm ml-3">
+                <input id="siteSearch" type="search" placeholder="Pesquisar site..."
+                  class="w-full px-3 py-2 rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm" />
+              </div>
+              <div id="paginationInfo" class="text-sm text-gray-600 dark:text-gray-400"></div>
+            </div>
+
+            <div class="list-wrapper">
+              <table class="w-full table-compact">
+                <thead>
+                  <tr>
+                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">
+                      Nome do Site
+                    </th>
+                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="sitesTableBody" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+              </table>
+            </div>
+            <!-- Paginação -->
+            <div id="pagination" class="flex justify-center items-center mt-4 space-x-2"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-3 w-full">
+    <div class="px-4 text-center text-gray-500 dark:text-gray-400 text-xs">
+      &copy; <span id="currentYear"></span> Serve Dashboard - Auto WordPress
+    </div>
+  </footer>
+
+  <!-- Custom Toast -->
+  <div id="customToast" class="custom-toast hidden">
+    <span id="toastMessage"></span>
+    <span class="toast-close" onclick="hideToast()">&times;</span>
+  </div>
+
+  <!-- Modal: Instalar -->
+  <div class="modal fade fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 modal-backdrop hidden"
+    id="installModal">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h3 class="text-base font-medium text-gray-900 dark:text-white">
+            Novo Site WordPress
+          </h3>
+          <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            onclick="closeInstallModal()">
+            <i class="bi bi-x-lg text-lg"></i>
+          </button>
+        </div>
+        <div class="p-4">
+          <input type="text" id="siteName"
+            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            placeholder="nome-do-site" required>
+        </div>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-2">
+          <button type="button"
+            class="px-3 py-1.5 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+            onclick="closeInstallModal()">
+            Cancelar
+          </button>
+          <button type="button"
+            class="px-3 py-1.5 bg-success-600 hover:bg-success-700 text-white rounded text-sm flex items-center transition-colors"
+            onclick="installSite()">
+            <i class="bi bi-check-lg mr-1.5"></i>
+            Criar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Editar wp-config.php -->
+  <div class="modal fade fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 modal-backdrop hidden" id="editModal">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h3 class="text-base font-medium text-gray-900 dark:text-white">
+            Editar wp-config.php: <span id="editSiteName"
+              class="font-mono text-primary-600 dark:text-primary-400"></span>
+          </h3>
+          <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            onclick="closeEditModal()">
+            <i class="bi bi-x-lg text-lg"></i>
+          </button>
+        </div>
+        <div class="p-4 overflow-auto flex-1">
+          <textarea id="configContent" class="w-full h-full font-mono text-xs bg-gray-900 text-gray-100 p-3 rounded-md"
+            rows="20" spellcheck="false"></textarea>
+        </div>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-2">
+          <button type="button"
+            class="px-3 py-1.5 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+            onclick="closeEditModal()">
+            Cancelar
+          </button>
+          <button type="button"
+            class="px-3 py-1.5 bg-success-600 hover:bg-success-700 text-white rounded text-sm flex items-center transition-colors"
+            onclick="saveConfig()">
+            <i class="bi bi-check-lg mr-1.5"></i>
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    // Set current year
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+    // Theme management
+    const themeToggle = document.getElementById('themeToggle');
+    const htmlElement = document.documentElement;
+    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      htmlElement.classList.add('dark');
+    } else {
+      htmlElement.classList.remove('dark');
+    }
+    themeToggle.addEventListener('click', () => {
+      htmlElement.classList.toggle('dark');
+      localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    // Sidebar toggle
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+
+    const sidebarCollapse = document.getElementById('sidebarCollapse');
+    const mainContent = document.getElementById('mainContent');
+    sidebarCollapse.addEventListener('click', () => {
+      sidebar.classList.toggle('sidebar-collapsed');
+      mainContent.classList.toggle('lg:ml-0');
+      localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('sidebar-collapsed'));
+    });
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+      sidebar.classList.add('sidebar-collapsed');
+      mainContent.classList.add('lg:ml-0');
+    }
+
+    // User menu
+    const userMenuButton = document.getElementById('userMenuButton');
+    const userMenu = document.getElementById('userMenu');
+    userMenuButton.addEventListener('click', () => userMenu.classList.toggle('hidden'));
+    document.addEventListener('click', (e) => {
+      if (!userMenuButton.contains(e.target) && !userMenu.contains(e.target)) {
+        userMenu.classList.add('hidden');
+      }
+    });
+
+    // Close sidebar on mobile link click
+    sidebar.addEventListener('click', (e) => {
+      if (e.target.tagName === 'A' && window.innerWidth < 1024) {
+        sidebar.classList.remove('open');
+      }
+    });
+
+    // Toast
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('customToast');
+      document.getElementById('toastMessage').textContent = message;
+      toast.className = `custom-toast ${type}`;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+    function hideToast() {
+      document.getElementById('customToast').classList.remove('show');
+    }
+
+    // Modals
+    function newSiteModal() {
+      document.getElementById('siteName').value = '';
+      document.getElementById('installModal').classList.remove('hidden');
+    }
+    function closeInstallModal() {
+      document.getElementById('installModal').classList.add('hidden');
+    }
+    function closeEditModal() {
+      document.getElementById('editModal').classList.add('hidden');
+    }
+
+    let currentSite = '';
+    let configsEdited = 0;
+
+    // Paginação
+    let currentPage = 1;
+    let pageLimit = 10;
+    let totalSites = 0;
+    let searchQuery = '';
+    let searchDebounce = null;
+
+    async function loadSites(page = 1) {
+      const tbody = document.getElementById('sitesTableBody');
+      const pagination = document.getElementById('pagination');
+      try {
+        const res = await fetch(`/api/auto/sites?page=${page}&limit=${pageLimit}&q=${encodeURIComponent(searchQuery)}`);
+        const data = await res.json();
+
+        if (!data.success) throw new Error(data.error || 'Falha na API');
+
+        const sites = data.sites || [];
+        totalSites = data.total || sites.length;
+        document.getElementById('totalSites').textContent = totalSites;
+
+        tbody.innerHTML = sites.length ? '' : `
+          <tr>
+            <td colspan="2" class="px-3 py-2 text-center text-gray-500 dark:text-gray-400 text-sm">
+              Nenhum site WordPress encontrado.
+            </td>
+          </tr>
+        `;
+
+        sites.forEach(site => {
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700/50';
+          row.innerHTML = `
+            <td class="px-3 py-2">
+              <div class="flex items-center">
+                <div class="w-6 h-6 rounded-md bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 mr-2">
+                  <i class="bi bi-wordpress text-sm"></i>
+                </div>
+                <span class="font-medium text-gray-900 dark:text-white">${site.name}</span>
+              </div>
+            </td>
+            <td class="px-3 py-2">
+              <div class="flex space-x-1">
+                <button 
+                  class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors flex items-center"
+                  onclick="editConfig('${site.name}')"
+                >
+                  <i class="bi bi-pencil-square mr-1"></i> Editar
+                </button>
+                <button 
+                  class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs transition-colors flex items-center"
+                  onclick="deleteSite('${site.name}')"
+                >
+                  <i class="bi bi-trash mr-1"></i> Excluir
+                </button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        // Renderizar paginação
+        const totalPages = Math.ceil(totalSites / pageLimit);
+        pagination.innerHTML = '';
+
+        // Atualiza info de paginação (sempre visível)
+        const start = (page - 1) * pageLimit;
+        const end = start + pageLimit;
+        const showingStart = totalSites === 0 ? 0 : start + 1;
+        const showingEnd = Math.min(totalSites, end);
+        const info = document.getElementById('paginationInfo');
+        if (info) info.textContent = `Mostrando ${showingStart}–${showingEnd} de ${totalSites}`;
+
+        // Botão anterior (sempre visível, desabilitado quando necessário)
+        const prevBtn = document.createElement('button');
+        prevBtn.className = `px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm ${page === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-300 dark:hover:bg-gray-600'}`;
+        prevBtn.textContent = 'Anterior';
+        prevBtn.disabled = page === 1;
+        prevBtn.onclick = () => changePage(page - 1);
+        pagination.appendChild(prevBtn);
+
+        // Números de página (apenas se mais de 1 página)
+        if (totalPages > 1) {
+          for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || Math.abs(i - page) <= 2) {
+              const pageBtn = document.createElement('button');
+              pageBtn.className = `px-2 py-1 rounded ${i === page ? 'bg-primary-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'} text-sm`;
+              pageBtn.textContent = i;
+              pageBtn.disabled = i === page;
+              pageBtn.onclick = () => changePage(i);
+              pagination.appendChild(pageBtn);
+            } else if (i === page - 3 || i === page + 3) {
+              const dots = document.createElement('span');
+              dots.className = 'px-2 py-1 text-gray-400';
+              dots.textContent = '...';
+              pagination.appendChild(dots);
+            }
+          }
+        }
+
+        // Botão próximo (sempre visível, desabilitado quando necessário)
+        const nextBtn = document.createElement('button');
+        nextBtn.className = `px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm ${page === totalPages || totalPages === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-300 dark:hover:bg-gray-600'}`;
+        nextBtn.textContent = 'Próximo';
+        nextBtn.disabled = page === totalPages || totalPages === 0;
+        nextBtn.onclick = () => changePage(page + 1);
+        pagination.appendChild(nextBtn);
+      } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="2" class="px-3 py-2 text-center text-red-600 dark:text-red-400 text-sm">
+              Erro ao carregar sites: ${err.message}
+            </td>
+          </tr>
+        `;
+        pagination.innerHTML = '';
+      }
+    }
+
+    function changePage(page) {
+      if (page < 1) page = 1;
+      const totalPages = Math.ceil(totalSites / pageLimit);
+      if (page > totalPages) page = totalPages;
+      currentPage = page;
+      loadSites(currentPage);
+    }
+
+    // Debounce helper
+    function debounce(fn, wait) {
+      let t = null;
+      return function (...args) {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), wait);
+      };
+    }
+
+    // Instalar
+    async function installSite() {
+      const name = document.getElementById('siteName').value.trim();
+      if (!name) return showToast('Nome do site é obrigatório.', 'warning');
+
+      const btn = event.target;
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm mr-1.5"></span> Criando...';
+
+      try {
+        const res = await fetch('/api/auto/install', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          showToast('✅ Site criado com sucesso!', 'success');
+          closeInstallModal();
+          loadSites();
+        } else {
+          showToast('❌ ' + data.error, 'danger');
+        }
+      } catch (err) {
+        showToast('Erro de rede: ' + err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+      }
+    }
+
+    // Editar
+    async function editConfig(site) {
+      currentSite = site;
+      document.getElementById('editSiteName').textContent = site;
+      document.getElementById('configContent').value = 'Carregando...';
+      document.getElementById('editModal').classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/auto/config/${encodeURIComponent(site)}`);
+        const data = await res.json();
+        document.getElementById('configContent').value = data.success
+          ? data.content
+          : `// Erro: ${data.error || 'Arquivo não encontrado'}`;
+      } catch (err) {
+        document.getElementById('configContent').value = `// Erro de conexão: ${err.message}`;
+      }
+    }
+
+    // Salvar
+    async function saveConfig() {
+      const content = document.getElementById('configContent').value;
+      const btn = event.target;
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm mr-1.5"></span> Salvando...';
+
+      try {
+        const res = await fetch(`/api/auto/config/${encodeURIComponent(currentSite)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        const data = await res.json();
+        if (data.success) {
+          configsEdited++;
+          document.getElementById('configsEdited').textContent = configsEdited;
+          showToast('✅ wp-config.php salvo com sucesso!', 'success');
+          closeEditModal();
+        } else {
+          showToast('❌ ' + data.error, 'danger');
+        }
+      } catch (err) {
+        showToast('Erro ao salvar: ' + err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+      }
+    }
+
+    // Excluir
+    async function deleteSite(site) {
+      if (!confirm(`Tem certeza que deseja excluir permanentemente o site "${site}"?`)) return;
+
+      try {
+        const res = await fetch(`/api/auto/delete/${encodeURIComponent(site)}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('✅ Site excluído com sucesso!', 'success');
+          loadSites();
+        } else {
+          showToast('❌ ' + data.error, 'danger');
+        }
+      } catch (err) {
+        showToast('Erro ao excluir: ' + err.message, 'danger');
+      }
+    }
+
+    // Init
+    document.addEventListener('DOMContentLoaded', () => {
+      const select = document.getElementById('perPageSelect');
+      if (select) {
+        select.value = String(pageLimit);
+        select.addEventListener('change', (e) => {
+          pageLimit = parseInt(e.target.value, 10) || 10;
+          changePage(1);
+        });
+      }
+      const search = document.getElementById('siteSearch');
+      if (search) {
+        const onSearch = debounce((e) => {
+          searchQuery = e.target.value.trim();
+          changePage(1);
+        }, 300);
+        search.addEventListener('input', onSearch);
+      }
+      loadSites(currentPage);
+    });
+  </script>
+</body>
+
+</html>

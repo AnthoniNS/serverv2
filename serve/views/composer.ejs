@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Serve Dashboard - Laravel Manager</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <!-- List.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/2.3.1/list.min.js"></script>
+  <!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          fontSize: {
+            'xs': ['0.75rem', { lineHeight: '1rem' }],
+            'sm': ['0.8125rem', { lineHeight: '1.25rem' }],
+            'base': ['0.875rem', { lineHeight: '1.5rem' }],
+            'lg': ['1rem', { lineHeight: '1.75rem' }],
+            'xl': ['1.125rem', { lineHeight: '1.75rem' }],
+            '2xl': ['1.25rem', { lineHeight: '2rem' }],
+          },
+          spacing: {
+            '18': '4.5rem',
+            '88': '22rem',
+          },
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+            dark: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              300: '#cbd5e1',
+              400: '#94a3b8',
+              500: '#64748b',
+              600: '#475569',
+              700: '#334155',
+              800: '#1e293b',
+              900: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --primary-color: #0ea5e9;
+      --primary-hover: #0284c7;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* CORREÇÕES PARA DATATABLE NO MODO ESCURO */
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_processing,
+    .dataTables_wrapper .dataTables_paginate {
+      color: inherit !important;
+      font-size: 0.8125rem !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_length,
+    .dark .dataTables_wrapper .dataTables_filter,
+    .dark .dataTables_wrapper .dataTables_info,
+    .dark .dataTables_wrapper .dataTables_processing,
+    .dark .dataTables_wrapper .dataTables_paginate {
+      color: #d1d5db !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+      color: inherit !important;
+      border: 1px solid #d1d5db !important;
+      font-size: 0.8125rem !important;
+      padding: 0.25rem 0.75rem !important;
+      margin-left: 0.25rem !important;
+      border-radius: 0.375rem !important;
+      background: white !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_paginate .paginate_button {
+      background: #374151 !important;
+      border-color: #4b5563 !important;
+      color: #d1d5db !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+      background: var(--primary-color) !important;
+      color: white !important;
+      border-color: var(--primary-color) !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+      background: #f3f4f6 !important;
+      border-color: #d1d5db !important;
+      color: #1f2937 !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+      background: #4b5563 !important;
+      border-color: #6b7280 !important;
+      color: #f9fafb !important;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+      border: 1px solid #d1d5db !important;
+      border-radius: 0.375rem !important;
+      padding: 0.375rem 0.75rem !important;
+      font-size: 0.8125rem !important;
+      background: white !important;
+      color: #1f2937 !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_filter input {
+      background-color: #374151 !important;
+      border-color: #4b5563 !important;
+      color: #f9fafb !important;
+    }
+
+    .dataTables_wrapper .dataTables_length select {
+      border: 1px solid #d1d5db !important;
+      border-radius: 0.375rem !important;
+      padding: 0.375rem 2rem 0.375rem 0.75rem !important;
+      font-size: 0.8125rem !important;
+      background: white !important;
+      color: #1f2937 !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_length select {
+      background-color: #374151 !important;
+      border-color: #4b5563 !important;
+      color: #f9fafb !important;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.6875rem;
+      font-weight: 500;
+    }
+
+    .status-badge.success {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: rgb(6, 95, 70);
+    }
+
+    .dark .status-badge.success {
+      background-color: rgba(16, 185, 129, 0.2);
+      color: rgb(110, 231, 183);
+    }
+
+    .status-badge.warning {
+      background-color: rgba(245, 158, 11, 0.1);
+      color: rgb(146, 64, 14);
+    }
+
+    .dark .status-badge.warning {
+      background-color: rgba(245, 158, 11, 0.2);
+      color: rgb(253, 186, 116);
+    }
+
+    .status-badge.error {
+      background-color: rgba(239, 68, 68, 0.1);
+      color: rgb(153, 27, 27);
+    }
+
+    .dark .status-badge.error {
+      background-color: rgba(239, 68, 68, 0.2);
+      color: rgb(252, 165, 165);
+    }
+
+    .log-output {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      line-height: 1.5;
+    }
+
+    .command-btn {
+      transition: all 0.2s ease-in-out;
+      font-size: 0.8125rem;
+    }
+
+    .command-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .dark .command-btn:hover {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-backdrop {
+      backdrop-filter: blur(4px);
+    }
+
+    .sidebar {
+      transition: all 0.3s ease;
+    }
+
+    .sidebar-collapsed {
+      width: 4rem !important;
+    }
+
+    .sidebar-collapsed .sidebar-text {
+      display: none !important;
+    }
+
+    .sidebar-collapsed .sidebar-section {
+      display: none !important;
+    }
+
+    .main-content-expanded {
+      margin-left: 0 !important;
+    }
+
+    .dropdown-action {
+      transition: all 0.15s ease;
+      font-size: 0.8125rem;
+    }
+
+    .dropdown-action:hover {
+      background-color: rgba(59, 130, 246, 0.1);
+    }
+
+    .dark .dropdown-action:hover {
+      background-color: rgba(59, 130, 246, 0.2);
+    }
+
+    /* Melhorias na paginação do DataTable */
+    .dataTables_wrapper {
+      position: relative;
+    }
+
+    .dataTables_wrapper .dataTables_paginate {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2rem;
+      height: 2rem;
+      padding: 0 0.5rem;
+      margin: 0 0.125rem;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      border: 1px solid #e5e7eb;
+      background-color: #ffffff !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_paginate .paginate_button {
+      background-color: #374151 !important;
+      border-color: #4b5563;
+      color: #d1d5db !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+      background-color: var(--primary-color) !important;
+      border-color: var(--primary-color) !important;
+      color: #ffffff !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.current):not(.disabled) {
+      background-color: #f3f4f6 !important;
+      border-color: #d1d5db !important;
+      color: #1f2937 !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.current):not(.disabled) {
+      background-color: #4b5563 !important;
+      border-color: #6b7280 !important;
+      color: #f9fafb !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .dataTables_wrapper .dataTables_info {
+      margin-top: 1rem;
+      color: #6b7280;
+    }
+
+    .dark .dataTables_wrapper .dataTables_info {
+      color: #9ca3af;
+    }
+
+    @media (max-width: 768px) {
+
+      .dataTables_wrapper .dataTables_length,
+      .dataTables_wrapper .dataTables_filter,
+      .dataTables_wrapper .dataTables_info,
+      .dataTables_wrapper .dataTables_paginate {
+        width: 100%;
+        margin-bottom: 0.5rem;
+        justify-content: center;
+      }
+
+      .dataTables_wrapper .dataTables_filter input {
+        width: 100%;
+        max-width: 300px;
+      }
+    }
+
+    .dropdown-container {
+      position: static !important;
+    }
+
+    .action-dropdown {
+      position: fixed !important;
+      z-index: 100 !important;
+    }
+
+    /* Estilos para List.js */
+    .list-pagination {
+      display: flex;
+      gap: 0.25rem;
+      align-items: center;
+    }
+
+    .list-pagination li {
+      list-style: none;
+    }
+
+    .list-pagination button {
+      padding: 0.375rem 0.75rem;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+      border: 1px solid #e5e7eb;
+      background-color: white;
+      color: #374151;
+    }
+
+    .dark .list-pagination button {
+      background-color: #374151;
+      border-color: #4b5563;
+      color: #d1d5db;
+    }
+
+    .list-pagination button:hover {
+      background-color: #f3f4f6;
+    }
+
+    .dark .list-pagination button:hover {
+      background-color: #4b5563;
+    }
+
+    .list-pagination .active button {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+      color: white;
+    }
+
+    .dark .list-pagination .active button {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+      color: white;
+    }
+
+    .list-pagination .disabled button {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .sort {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .sort:hover {
+      color: var(--primary-color);
+    }
+
+    .asc .sort-icon:after {
+      content: "↑";
+    }
+
+    .desc .sort-icon:after {
+      content: "↓";
+    }
+
+    /* Ajustes para tabelas mais compactas */
+    .table-compact td {
+      padding: 0.5rem 0.75rem !important;
+    }
+
+    .table-compact th {
+      padding: 0.5rem 0.75rem !important;
+    }
+
+    /* Estilos para a paginação do List.js */
+    .pagination {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .pagination li {
+      list-style: none;
+    }
+
+    .pagination button {
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      color: inherit;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .pagination button[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .pagination button:not([disabled]):hover {
+      background-color: rgb(243, 244, 246);
+    }
+
+    .dark .pagination button:not([disabled]):hover {
+      background-color: rgb(55, 65, 81);
+    }
+
+    .pagination button.active {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+    }
+
+    /* CORREÇÃO ADICIONAL PARA OS BOTÕES DE PAGINAÇÃO E CAMPO DE BUSCA NO MODO ESCURO */
+    .dataTables_wrapper .dataTables_paginate {
+      margin-top: 0.5rem !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+      background: white !important;
+      border: 1px solid #e5e7eb !important;
+      padding: 0.375rem 0.75rem !important;
+      margin: 0 0.25rem !important;
+      border-radius: 0.375rem !important;
+      color: #374151 !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_filter label,
+    .dark .dataTables_wrapper .dataTables_length label {
+      color: #d1d5db !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_filter input::placeholder {
+      color: #9ca3af !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_paginate .paginate_button {
+      background: #374151 !important;
+      border: 1px solid #4b5563 !important;
+      color: #d1d5db !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+      background: #4b5563 !important;
+      border-color: #6b7280 !important;
+      color: #9ca3af !important;
+      opacity: 0.5 !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+      background: var(--primary-color) !important;
+      border-color: var(--primary-color) !important;
+      color: white !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+      background: var(--primary-color) !important;
+      border-color: var(--primary-color) !important;
+      color: white !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+      background: #4b5563 !important;
+      border-color: #6b7280 !important;
+      color: #9ca3af !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_paginate .paginate_button.previous,
+    .dark .dataTables_wrapper .dataTables_paginate .paginate_button.next {
+      background: #374151 !important;
+      border-color: #4b5563 !important;
+      color: #d1d5db !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_paginate .paginate_button.previous:hover,
+    .dark .dataTables_wrapper .dataTables_paginate .paginate_button.next:hover {
+      background: #4b5563 !important;
+      border-color: #6b7280 !important;
+      color: #f9fafb !important;
+    }
+
+    /* Estilos adicionais para melhorar a experiência no modo escuro */
+    .dark .dataTables_wrapper .dataTables_filter label {
+      display: flex;
+      align-items: center;
+    }
+
+    .dark .dataTables_wrapper .dataTables_filter input {
+      caret-color: #f9fafb !important;
+    }
+
+    .dark .dataTables_wrapper .dataTables_length select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3e%3cpath fill='%23d1d5db' d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 0.5rem center;
+      background-size: 1em;
+    }
+
+    .dark .dataTables_wrapper .dataTables_length select:focus {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+
+<body
+  class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col justify-between text-sm">
+  <!-- Container principal do conteúdo -->
+  <div class="flex flex-col flex-1">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <div class="flex items-center justify-between px-4 py-2">
+        <div class="flex items-center">
+          <button id="sidebarToggle"
+            class="lg:hidden mr-3 p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="bi bi-list text-lg"></i>
+          </button>
+          <button id="sidebarCollapse"
+            class="hidden lg:flex mr-3 p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="bi bi-layout-sidebar text-lg"></i>
+          </button>
+          <div class="flex items-center">
+            <i class="bi bi-speedometer2 text-xl text-primary-600 dark:text-primary-400 mr-2"></i>
+            <h1 class="text-lg font-bold text-gray-900 dark:text-white">Serve Dashboard</h1>
+          </div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <!-- Theme Toggle -->
+          <button id="themeToggle"
+            class="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+            <i class="bi bi-sun hidden dark:block text-sm"></i>
+            <i class="bi bi-moon block dark:hidden text-sm"></i>
+          </button>
+          <!-- User Menu -->
+          <div class="relative">
+            <button id="userMenuButton"
+              class="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+              <div
+                class="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center text-white font-medium text-sm">
+                <i class="bi bi-person"></i>
+              </div>
+            </button>
+            <!-- Dropdown Menu -->
+            <div id="userMenu"
+              class="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 hidden border border-gray-200 dark:border-gray-700">
+              <a href="/"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-house mr-2"></i>Início
+              </a>
+              <a href="/dashboard"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-terminal mr-2"></i>Node
+              </a>
+              <a href="/caddy"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-globe mr-2"></i>Domínios
+              </a>
+              <a href="/docker"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box-seam mr-2"></i>Docker
+              </a>
+              <a href="/git"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-git mr-2"></i>Git
+              </a>
+              <a href="/auto"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-rocket-takeoff mr-2"></i>AutoInstall
+              </a>
+              <a href="/composer"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300">
+                <i class="bi bi-box mr-2"></i>Composer
+              </a>
+              <a href="/filemanager"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-archive mr-2"></i>File Manager
+              </a>
+              <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+              <a href="/logout"
+                class="block px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box-arrow-right mr-2"></i>Sair
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex">
+      <!-- Sidebar -->
+      <aside id="sidebar"
+        class="sidebar w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-[calc(100vh-49px)] fixed lg:static z-20 transition-all duration-300">
+        <nav class="p-3">
+          <ul class="space-y-1">
+            <li>
+              <a href="/"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-house mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Início</span>
+              </a>
+            </li>
+            <li>
+              <a href="/dashboard"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-terminal mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Node</span>
+              </a>
+            </li>
+            <li>
+              <a href="/caddy"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-globe mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Domínios</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docker"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-box-seam mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Docker</span>
+              </a>
+            </li>
+            <li>
+              <a href="/git"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-git mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Git</span>
+              </a>
+            </li>
+            <li>
+              <a href="/auto"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-rocket-takeoff mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">AutoInstall</span>
+              </a>
+            </li>
+            <li>
+              <a href="/composer"
+                class="flex items-center px-3 py-1.5 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded-lg text-sm">
+                <i class="bi bi-box mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Composer</span>
+              </a>
+            </li>
+            <li>
+              <a href="/filemanager"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-archive mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">File Manager</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+      <!-- Main Content -->
+      <main id="mainContent" class="flex-1 p-4 transition-all duration-300">
+        <div class="mb-4">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+            <i class="bi bi-braces-asterisk mr-2 text-primary-600 dark:text-primary-400"></i>
+            Projetos Laravel
+          </h2>
+          <p class="text-gray-600 dark:text-gray-400 mt-0.5 text-sm">Gerencie seus projetos Laravel e execute comandos
+            Composer</p>
+        </div>
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-3 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center">
+              <div class="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 mr-3">
+                <i class="bi bi-folder text-lg"></i>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-gray-600 dark:text-gray-400">Total de Projetos</p>
+                <p class="text-xl font-bold text-gray-900 dark:text-white" id="totalProjects">0</p>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-3 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center">
+              <div class="p-2 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 mr-3">
+                <i class="bi bi-exclamation-triangle text-lg"></i>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-gray-600 dark:text-gray-400">Comandos Executados</p>
+                <p class="text-xl font-bold text-gray-900 dark:text-white" id="commandsExecuted">0</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Projects Table -->
+        <div id="projects-wrapper"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div
+            class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3 justify-between items-center">
+            <h3 class="text-base font-medium text-gray-900 dark:text-white">Lista de Projetos</h3>
+            <div class="flex items-center gap-3">
+              <div class="relative">
+                <input type="text"
+                  class="search px-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500 w-full sm:w-44"
+                  placeholder="Pesquisar projetos...">
+                <i class="bi bi-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+              </div>
+              <button onclick="loadProjects()"
+                class="flex items-center px-2.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded text-sm font-medium transition-colors">
+                <i class="bi bi-arrow-clockwise mr-1.5"></i>
+                Atualizar
+              </button>
+            </div>
+          </div>
+          <div class="p-3">
+            <div class="list-wrapper">
+              <table class="w-full table-compact">
+                <thead>
+                  <tr>
+                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">
+                      <button class="sort flex items-center text-gray-700 dark:text-gray-200" data-sort="project-name">
+                        Projeto <i class="bi bi-arrow-down-up ml-1"></i>
+                      </button>
+                    </th>
+                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">
+                      <button class="sort flex items-center text-gray-700 dark:text-gray-200" data-sort="project-path">
+                        Local <i class="bi bi-arrow-down-up ml-1"></i>
+                      </button>
+                    </th>
+                    <!-- status column removed -->
+                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Ações</th>
+                  </tr>
+                </thead>
+                <tbody class="list divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+              </table>
+            </div>
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mt-4">
+              <div class="text-sm text-gray-600 dark:text-gray-400">
+                <span class="total-items">0</span> projetos encontrados
+              </div>
+              <div class="flex items-center gap-2">
+                <select
+                  class="per-page px-2 py-1 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md">
+                  <option value="5">5 por página</option>
+                  <option value="10" selected>10 por página</option>
+                  <option value="25">25 por página</option>
+                  <option value="50">50 por página</option>
+                </select>
+                <ul class="pagination flex items-center gap-1"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Footer (FIXO no final da viewport) -->
+  <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-3 w-full">
+    <div class="px-4 text-center text-gray-500 dark:text-gray-400 text-xs">
+      &copy; <span id="currentYear"></span> Serve Dashboard - Laravel Manager
+    </div>
+  </footer>
+
+  <!-- Modal: Logs -->
+  <div class="modal fade fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 modal-backdrop hidden" id="logModal">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h3 class="text-base font-medium text-gray-900 dark:text-white">
+            Executando: <span id="logAction" class="font-mono text-primary-600 dark:text-primary-400"></span>
+          </h3>
+          <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            onclick="closeLogModal()">
+            <i class="bi bi-x-lg text-lg"></i>
+          </button>
+        </div>
+        <div class="p-4 overflow-auto flex-1">
+          <pre id="logOutput"
+            class="log-output bg-gray-900 text-gray-100 p-3 rounded-md overflow-auto max-h-[60vh]"></pre>
+        </div>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+          <button type="button"
+            class="px-3 py-1.5 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+            onclick="closeLogModal()">
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Modal: Editar .env -->
+  <div class="modal fade fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 modal-backdrop hidden" id="envModal">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h3 class="text-base font-medium text-gray-900 dark:text-white">
+            Editar .env: <span id="envProject" class="font-mono text-primary-600 dark:text-primary-400"></span>
+          </h3>
+          <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            onclick="closeEnvModal()">
+            <i class="bi bi-x-lg text-lg"></i>
+          </button>
+        </div>
+        <div class="p-4 overflow-auto flex-1">
+          <textarea id="envContent" class="w-full h-full font-mono text-xs bg-gray-900 text-gray-100 p-3 rounded-md"
+            rows="20" spellcheck="false"></textarea>
+        </div>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-2">
+          <button type="button"
+            class="px-3 py-1.5 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+            onclick="closeEnvModal()">
+            Cancelar
+          </button>
+          <button type="button"
+            class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition-colors flex items-center"
+            onclick="saveEnv()">
+            <i class="bi bi-check-lg mr-1.5"></i>
+            Salvar .env
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script>
+    let projectsList;
+    // Set current year in footer
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+    // Theme management
+    const themeToggle = document.getElementById('themeToggle');
+    const htmlElement = document.documentElement;
+    // Check for saved theme preference or default to light
+    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      htmlElement.classList.add('dark');
+    } else {
+      htmlElement.classList.remove('dark');
+    }
+    themeToggle.addEventListener('click', () => {
+      htmlElement.classList.toggle('dark');
+      localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+    // Sidebar toggle for mobile
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    sidebarToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
+    // Sidebar collapse/expand for desktop
+    const sidebarCollapse = document.getElementById('sidebarCollapse');
+    const mainContent = document.getElementById('mainContent');
+    sidebarCollapse.addEventListener('click', () => {
+      sidebar.classList.toggle('sidebar-collapsed');
+      mainContent.classList.toggle('lg:ml-0');
+      // Save state in localStorage
+      const isCollapsed = sidebar.classList.contains('sidebar-collapsed');
+      localStorage.setItem('sidebarCollapsed', isCollapsed);
+    });
+    // Check saved sidebar state
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+      sidebar.classList.add('sidebar-collapsed');
+      mainContent.classList.add('lg:ml-0');
+    }
+    // User menu toggle
+    const userMenuButton = document.getElementById('userMenuButton');
+    const userMenu = document.getElementById('userMenu');
+    userMenuButton.addEventListener('click', () => {
+      userMenu.classList.toggle('hidden');
+    });
+    // Close user menu when clicking outside
+    document.addEventListener('click', (event) => {
+      if (!userMenuButton.contains(event.target) && !userMenu.contains(event.target)) {
+        userMenu.classList.add('hidden');
+      }
+    });
+    // Close sidebar when clicking on a link (mobile)
+    sidebar.addEventListener('click', (event) => {
+      if (event.target.tagName === 'A' && window.innerWidth < 1024) {
+        sidebar.classList.remove('open');
+      }
+    });
+
+    let currentProject = '';
+    let commandsCount = 0;
+
+    // Function to toggle dropdown with proper positioning
+    function toggleDropdown(projectId, event) {
+      event.stopPropagation();
+      const dropdown = document.getElementById(`dropdown-${projectId}`);
+      const button = event.target.closest('button');
+      const buttonRect = button.getBoundingClientRect();
+      // Close other open dropdowns
+      document.querySelectorAll('.action-dropdown').forEach(drop => {
+        if (drop.id !== `dropdown-${projectId}`) {
+          drop.classList.add('hidden');
+        }
+      });
+      // Toggle current dropdown
+      dropdown.classList.toggle('hidden');
+      if (!dropdown.classList.contains('hidden')) {
+        // Position dropdown relative to the button
+        const dropdownRect = dropdown.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        // Calculate position
+        let top = buttonRect.bottom + 5;
+        let left = buttonRect.left - 100; // Adjust based on dropdown width
+        // Ensure dropdown stays within viewport
+        if (top + dropdownRect.height > viewportHeight - 10) {
+          top = buttonRect.top - dropdownRect.height - 5;
+        }
+        if (left < 10) {
+          left = 10;
+        }
+        if (left + dropdownRect.width > window.innerWidth - 10) {
+          left = window.innerWidth - dropdownRect.width - 10;
+        }
+        dropdown.style.top = `${top}px`;
+        dropdown.style.left = `${left}px`;
+      }
+    }
+
+    // Alternate dropdown toggler for List.js template rows (uses sibling dropdown)
+    function toggleDropdownElement(event) {
+      event.stopPropagation();
+      const button = event.target.closest('button');
+      if (!button) return;
+      const dropdown = button.nextElementSibling;
+      // Close other open dropdowns
+      document.querySelectorAll('.action-dropdown').forEach(drop => {
+        if (drop !== dropdown) drop.classList.add('hidden');
+      });
+      dropdown.classList.toggle('hidden');
+      if (!dropdown.classList.contains('hidden')) {
+        const buttonRect = button.getBoundingClientRect();
+        const dropdownRect = dropdown.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        let top = buttonRect.bottom + 5;
+        let left = buttonRect.left - 100;
+        if (top + dropdownRect.height > viewportHeight - 10) {
+          top = buttonRect.top - dropdownRect.height - 5;
+        }
+        if (left < 10) left = 10;
+        if (left + dropdownRect.width > window.innerWidth - 10) {
+          left = window.innerWidth - dropdownRect.width - 10;
+        }
+        dropdown.style.top = `${top}px`;
+        dropdown.style.left = `${left}px`;
+      }
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('.dropdown-container')) {
+        document.querySelectorAll('.action-dropdown').forEach(drop => {
+          drop.classList.add('hidden');
+        });
+      }
+    });
+
+    async function loadProjects() {
+      try {
+        const res = await fetch('/api/composer/projects');
+        const data = await res.json();
+        // Update stats
+        document.getElementById('totalProjects').textContent = data.projects.length;
+        document.getElementById('commandsExecuted').textContent = commandsCount;
+
+        // Prepare List.js items
+        const items = data.projects.map((proj, index) => ({
+          'project-name': proj.name,
+          'project-version': proj.version || 'N/A',
+          'project-path': proj.base,
+          'project-id': `project-${index}`,
+          'name': proj.name
+        }));
+
+        const perPageSelect = document.querySelector('.per-page');
+        const perPage = perPageSelect ? parseInt(perPageSelect.value, 10) : 10;
+
+        // Clear existing tbody (if any)
+        const tbody = document.querySelector('#projects-wrapper .list-wrapper tbody.list');
+        if (tbody) tbody.innerHTML = '';
+
+        // Remove old pagination container if exists
+        const oldPagination = document.querySelector('#projects-wrapper .pagination');
+        if (oldPagination) oldPagination.remove();
+
+        // Create List.js options and (re)initialize
+        const options = {
+          valueNames: ['project-name', 'project-path', 'project-version', 'project-id', 'name'],
+          item: `
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+              <td class="px-3 py-2">
+                <div class="flex items-center">
+                  <div class="w-6 h-6 rounded-md bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 mr-2">
+                    <i class="bi bi-folder text-sm"></i>
+                  </div>
+                  <div>
+                    <div class="project-name font-medium text-gray-900 dark:text-white text-sm"></div>
+                    <div class="project-version text-xs text-gray-500 dark:text-gray-400"></div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-3 py-2"><div class="project-path font-mono text-xs text-gray-700 dark:text-gray-300"></div></td>
+              <td class="px-3 py-2">
+                <div class="dropdown-container">
+                  <button onclick="toggleDropdownElement(event)" class="flex items-center px-2 py-1 bg-primary-600 hover:bg-primary-700 text-white rounded text-sm font-medium transition-colors">
+                    <i class="bi bi-gear mr-1.5"></i>
+                    Ações
+                    <i class="bi bi-chevron-down ml-1 text-xs"></i>
+                  </button>
+                  <div class="action-dropdown fixed w-52 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden border border-gray-200 dark:border-gray-700">
+                    <button class="dropdown-action w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 flex items-center" onclick="runCommand(this.closest('tr').querySelector('.project-name').textContent, 'composer-install')">
+                      <i class="bi bi-download mr-2.5 text-blue-500"></i>
+                      <div>
+                        <div class="font-medium text-sm">Composer Install</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">Instalar dependências</div>
+                      </div>
+                    </button>
+                    <button class="dropdown-action w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 flex items-center" onclick="runCommand(this.closest('tr').querySelector('.project-name').textContent, 'composer-update')">
+                      <i class="bi bi-arrow-clockwise mr-2.5 text-amber-500"></i>
+                      <div>
+                        <div class="font-medium text-sm">Composer Update</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">Atualizar dependências</div>
+                      </div>
+                    </button>
+                    <button class="dropdown-action w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 flex items-center" onclick="runCommand(this.closest('tr').querySelector('.project-name').textContent, 'key-generate')">
+                      <i class="bi bi-key mr-2.5 text-purple-500"></i>
+                      <div>
+                        <div class="font-medium text-sm">Key Generate</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">Gerar chave da aplicação</div>
+                      </div>
+                    </button>
+                    <button class="dropdown-action w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 flex items-center" onclick="runCommand(this.closest('tr').querySelector('.project-name').textContent, 'clear-all')">
+                      <i class="bi bi-eraser mr-2.5 text-gray-500"></i>
+                      <div>
+                        <div class="font-medium text-sm">Clear All</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">Limpar cache e otimizações</div>
+                      </div>
+                    </button>
+                    <button class="dropdown-action w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 flex items-center" onclick="runCommand(this.closest('tr').querySelector('.project-name').textContent, 'migrate')">
+                      <i class="bi bi-database mr-2.5 text-green-500"></i>
+                      <div>
+                        <div class="font-medium text-sm">Migrate</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">Executar migrações</div>
+                      </div>
+                    </button>
+                    <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                    <button class="dropdown-action w-full text-left px-3 py-1.5 text-sm text-red-600 dark:text-red-400 flex items-center" onclick="editEnv(this.closest('tr').querySelector('.project-name').textContent)">
+                      <i class="bi bi-file-earmark-code mr-2.5"></i>
+                      <div>
+                        <div class="font-medium text-sm">Editar .env</div>
+                        <div class="text-xs text-red-500 dark:text-red-400">Editar variáveis de ambiente</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          `,
+          page: perPage,
+          pagination: true
+        };
+
+        // initialize List.js
+        projectsList = new List('projects-wrapper', options, items);
+
+        // Update total counter when list updates
+        projectsList.on('updated', function () {
+          const total = projectsList.matchingItems ? projectsList.matchingItems.length : 0;
+          document.querySelector('.total-items').textContent = total;
+
+          // Clear the old pagination if it exists
+          const paginationContainer = document.querySelector('.pagination');
+          if (paginationContainer) {
+            paginationContainer.innerHTML = '';
+          }
+
+          // Only show pagination if we have more items than the per page limit
+          if (total > projectsList.page) {
+            // Calculate total pages
+            const totalPages = Math.ceil(total / projectsList.page);
+            const currentPage = projectsList.i;
+
+            // Previous button
+            const prevBtn = document.createElement('li');
+            prevBtn.innerHTML = `<button class="page px-2 py-1 rounded-md ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}" ${currentPage === 1 ? 'disabled' : ''}>
+              <i class="bi bi-chevron-left"></i>
+            </button>`;
+            if (currentPage !== 1) {
+              prevBtn.querySelector('button').addEventListener('click', () => {
+                projectsList.previousPage();
+              });
+            }
+            paginationContainer.appendChild(prevBtn);
+
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+              const li = document.createElement('li');
+              li.innerHTML = `<button class="page px-3 py-1 rounded-md ${i === currentPage ? 'bg-primary-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}">${i}</button>`;
+              if (i !== currentPage) {
+                li.querySelector('button').addEventListener('click', () => {
+                  projectsList.show(i, projectsList.page);
+                });
+              }
+              paginationContainer.appendChild(li);
+            }
+
+            // Next button
+            const nextBtn = document.createElement('li');
+            nextBtn.innerHTML = `<button class="page px-2 py-1 rounded-md ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}" ${currentPage === totalPages ? 'disabled' : ''}>
+              <i class="bi bi-chevron-right"></i>
+            </button>`;
+            if (currentPage !== totalPages) {
+              nextBtn.querySelector('button').addEventListener('click', () => {
+                projectsList.nextPage();
+              });
+            }
+            paginationContainer.appendChild(nextBtn);
+          }
+        });
+
+        // Rebind per-page control: recreate the list with new page size on change
+        if (perPageSelect) {
+          perPageSelect.onchange = function () {
+            loadProjects();
+          };
+        }
+      } catch (err) {
+        const tbody = document.querySelector('#projects-wrapper .list tbody');
+        if (tbody) tbody.innerHTML = `<tr><td colspan="3" class="text-center py-3 text-red-600 dark:text-red-400 text-sm">Erro: ${err.message}</td></tr>`;
+      }
+    }
+
+    async function runCommand(project, action) {
+      currentProject = project;
+      commandsCount++;
+      document.getElementById('commandsExecuted').textContent = commandsCount;
+
+      // Close dropdown
+      document.querySelectorAll('.action-dropdown').forEach(drop => {
+        drop.classList.add('hidden');
+      });
+
+      const actionNames = {
+        'composer-install': 'composer install',
+        'composer-update': 'composer update',
+        'key-generate': 'php artisan key:generate',
+        'clear-all': 'php artisan clear:all',
+        'migrate': 'php artisan migrate',
+        'migrate-fresh': 'php artisan migrate:fresh'
+      };
+
+      document.getElementById('logAction').textContent = `${actionNames[action]} (${project})`;
+      document.getElementById('logOutput').textContent = '';
+      document.getElementById('logModal').classList.remove('hidden');
+
+      const output = document.getElementById('logOutput');
+      const eventSource = new EventSource(`/api/composer/run/${encodeURIComponent(project)}/${action}`, {
+        withCredentials: true
+      });
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.output) {
+          output.textContent += data.output;
+        } else if (data.error) {
+          output.textContent += `\x1b[31m${data.error}\x1b[0m`;
+        } else if (data.exit !== undefined) {
+          output.textContent += `
+✅ Comando finalizado com código: ${data.exit}`;
+          eventSource.close();
+        }
+        output.scrollTop = output.scrollHeight;
+      };
+
+      eventSource.onerror = () => {
+        output.textContent += '\n❌ Erro de conexão com o servidor.';
+        eventSource.close();
+      };
+    }
+
+    function closeLogModal() {
+      document.getElementById('logModal').classList.add('hidden');
+    }
+
+    async function editEnv(project) {
+      currentProject = project;
+
+      // Close dropdown
+      document.querySelectorAll('.action-dropdown').forEach(drop => {
+        drop.classList.add('hidden');
+      });
+
+      document.getElementById('envProject').textContent = project;
+      document.getElementById('envContent').value = 'Carregando...';
+      document.getElementById('envModal').classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/composer/env/${encodeURIComponent(project)}`);
+        const data = await res.json();
+        document.getElementById('envContent').value = data.success ? data.content : '';
+      } catch (err) {
+        document.getElementById('envContent').value = `// Erro: ${err.message}`;
+      }
+    }
+
+    function closeEnvModal() {
+      document.getElementById('envModal').classList.add('hidden');
+    }
+
+    async function saveEnv() {
+      const content = document.getElementById('envContent').value;
+      const btn = event.target;
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm mr-1.5"></span> Salvando...';
+      try {
+        const res = await fetch(`/api/composer/env/${encodeURIComponent(currentProject)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ .env salvo com sucesso!');
+          closeEnvModal();
+        } else {
+          alert('❌ ' + data.error);
+        }
+      } catch (err) {
+        alert('Erro: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadProjects);
+  </script>
+</body>
+
+</html>

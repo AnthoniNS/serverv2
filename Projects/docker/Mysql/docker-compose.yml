@@ -1,0 +1,19 @@
+services:
+  mysql:
+      image: mysql:8.0
+      container_name: mysql
+      restart: always
+      environment:
+        MYSQL_ROOT_PASSWORD: root2
+        MYSQL_PASSWORD: root
+      volumes:
+        - ./mysql:/var/lib/mysql
+      networks:
+        - minharede
+      healthcheck:
+        test: mysqladmin ping
+      ports:
+        - "3306:3306"   # MySQL
+networks:
+  minharede:
+    external: true

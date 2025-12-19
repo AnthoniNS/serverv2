@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Terminal Web</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+  <style>
+    body { margin: 0; background: #000; color: #fff; font-family: 'Courier New', monospace; }
+    #terminal { height: 100vh; width: 100%; padding: 10px; box-sizing: border-box; }
+    .xterm-viewport { scrollbar-width: thin; scrollbar-color: #444 #000; }
+    .xterm-viewport::-webkit-scrollbar { width: 8px; }
+    .xterm-viewport::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+    .xterm-viewport::-webkit-scrollbar-track { background: #000; }
+  </style>
+</head>
+<body>
+  <div id="terminal"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+  <script>
+    const socket = io();
+    const term = new Terminal({
+      cols: 120,
+      rows: 30,
+      fontSize: 14,
+      fontFamily: 'monospace',
+      cursorBlink: true,
+      theme: {
+        background: '#000',
+        foreground: '#fff',
+        cursor: '#fff',
+        cursorAccent: '#000',
+        selection: '#444'
+      }
+    });
+
+    term.open(document.getElementById('terminal'));
+    term.focus();
+
+    let inputBuffer = '';
+    let commandHistory = [];
+    let historyIndex = -1;
+    const currentPrompt = '\x1b[32muser@server:\x1b[34m~\x1b[0m$ ';
+    let isProcessing = false;
+
+    function showPrompt() {
+      if (!isProcessing) {
+        term.write('\r\n' + currentPrompt);
+      }
+    }
+
+    function clearScreen() {
+      term.clear();
+      term.write(currentPrompt);
+      inputBuffer = '';
+      isProcessing = false;
+    }
+
+    function sendCommand(cmd) {
+      if (cmd.trim() === '') return;
+      commandHistory.push(cmd);
+      historyIndex = commandHistory.length;
+      socket.emit('command', cmd);
+      isProcessing = true;
+    }
+
+    socket.on('output', (data) => {
+      if (data.includes('\x1b[2J') || data.includes('\x1b[H\x1b[J')) {
+        clearScreen();
+        return;
+      }
+      if (data.endsWith('\n') || data.includes('\r\n')) {
+        isProcessing = false;
+      }
+      term.write(data);
+    });
+
+    term.onData((data) => {
+      if (isProcessing) return;
+
+      for (let i = 0; i < data.length; i++) {
+        const char = data[i];
+
+        if (char === '\r' || char === '\n') {
+          if (inputBuffer.trim() !== '') {
+            sendCommand(inputBuffer);
+            inputBuffer = '';
+          } else {
+            showPrompt();
+          }
+        } else if (char === '\x7f') { // Backspace
+          if (inputBuffer.length > 0) {
+            inputBuffer = inputBuffer.slice(0, -1);
+            term.write('\b \b');
+          }
+        } else if (char === '\x03') { // Ctrl+C
+          term.write('^C\r\n');
+          inputBuffer = '';
+          socket.emit('ctrl-c'); // Envia sinal para o backend
+          setTimeout(showPrompt, 100);
+        } else if (char === '\x1b') { // Setas
+          if (i + 2 < data.length && data[i + 1] === '[') {
+            const code = data[i + 2];
+            if (code === 'A') { // ↑
+              if (historyIndex > 0) {
+                historyIndex--;
+                inputBuffer = commandHistory[historyIndex];
+                term.write('\r\x1b[2K' + currentPrompt + inputBuffer);
+              }
+            } else if (code === 'B') { // ↓
+              if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+                inputBuffer = commandHistory[historyIndex];
+                term.write('\r\x1b[2K' + currentPrompt + inputBuffer);
+              } else {
+                historyIndex = commandHistory.length;
+                inputBuffer = '';
+                term.write('\r\x1b[2K' + currentPrompt);
+              }
+            }
+            i += 2;
+          }
+        } else {
+          inputBuffer += char;
+          term.write(char);
+        }
+      }
+    });
+
+    term.writeln('💻 Terminal conectado. Digite seus comandos...\r\n');
+    showPrompt();
+
+    socket.on('connect', () => {
+      term.writeln('\r\n🟢 Conectado ao servidor.\r\n');
+      showPrompt();
+    });
+
+    socket.on('disconnect', () => {
+      term.writeln('\r\n🔴 Desconectado do servidor.\r\n');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+services:
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: root2
+    networks:
+      - minharede
+    ports:
+      - "8081:80"
+networks:
+  minharede:
+    external: true

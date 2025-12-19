@@ -1,0 +1,14 @@
+# Ignorar dependências
+node_modules/
+
+# Logs
+npm-debug.log
+yarn-error.log
+*.log
+
+filebrowser.db
+
+Mysql/mysql/
+
+# Build/output
+dist/

@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Serve Dashboard</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          fontSize: {
+            'xs': ['0.75rem', { lineHeight: '1rem' }],
+            'sm': ['0.8125rem', { lineHeight: '1.25rem' }],
+            'base': ['0.875rem', { lineHeight: '1.5rem' }],
+            'lg': ['1rem', { lineHeight: '1.75rem' }],
+            'xl': ['1.125rem', { lineHeight: '1.75rem' }],
+            '2xl': ['1.25rem', { lineHeight: '2rem' }],
+          },
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .sidebar {
+      transition: all 0.3s ease;
+    }
+
+    .sidebar-collapsed {
+      width: 4rem !important;
+    }
+
+    .sidebar-collapsed .sidebar-text {
+      display: none !important;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+      }
+
+      70% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+      }
+    }
+
+    .stat-card-alert {
+      animation: pulse 2s infinite;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col text-sm">
+  <div class="flex flex-col flex-1">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <div class="flex items-center justify-between px-4 py-2">
+        <div class="flex items-center">
+          <button id="sidebarToggle"
+            class="lg:hidden mr-3 p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="bi bi-list text-lg"></i>
+          </button>
+          <button id="sidebarCollapse"
+            class="hidden lg:flex mr-3 p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="bi bi-layout-sidebar text-lg"></i>
+          </button>
+          <div class="flex items-center">
+            <i class="bi bi-hdd-stack text-xl text-primary-600 dark:text-primary-400 mr-2"></i>
+            <h1 class="text-lg font-bold text-gray-900 dark:text-white">Serve Dashboard</h1>
+          </div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button id="themeToggle"
+            class="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+            <i class="bi bi-sun hidden dark:block text-sm"></i>
+            <i class="bi bi-moon block dark:hidden text-sm"></i>
+          </button>
+          <div class="relative">
+            <button id="userMenuButton"
+              class="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+              <div
+                class="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center text-white font-medium text-sm">
+                <i class="bi bi-person"></i>
+              </div>
+            </button>
+            <div id="userMenu"
+              class="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 hidden border border-gray-200 dark:border-gray-700">
+              <a href="/"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300">
+                <i class="bi bi-house mr-2"></i>Início
+              </a>
+              <a href="/dashboard"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-terminal mr-2"></i>Node
+              </a>
+              <a href="/caddy"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-globe mr-2"></i>Domínios
+              </a>
+              <a href="/docker"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box-seam mr-2"></i>Docker
+              </a>
+              <a href="/git"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-git mr-2"></i>Git
+              </a>
+              <a href="/auto"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-rocket-takeoff mr-2"></i>AutoInstall
+              </a>
+              <a href="/composer"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box mr-2"></i>Composer
+              </a>
+              <a href="/filemanager"
+                class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-archive mr-2"></i>File Manager
+              </a>
+              <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+              <a href="/logout"
+                class="block px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="bi bi-box-arrow-right mr-2"></i>Sair
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex">
+      <!-- Sidebar -->
+      <aside id="sidebar"
+        class="sidebar w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-[calc(100vh-49px)] fixed lg:static z-20 transition-all duration-300">
+        <nav class="p-3">
+          <ul class="space-y-1">
+            <li>
+              <a href="/"
+                class="flex items-center px-3 py-1.5 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded-lg text-sm">
+                <i class="bi bi-house mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Início</span>
+              </a>
+            </li>
+            <li>
+              <a href="/dashboard"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-terminal mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Node</span>
+              </a>
+            </li>
+            <li>
+              <a href="/caddy"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-globe mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Domínios</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docker"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-box-seam mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Docker</span>
+              </a>
+            </li>
+            <li>
+              <a href="/git"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-git mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Git</span>
+              </a>
+            </li>
+            <li>
+              <a href="/auto"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-rocket-takeoff mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">AutoInstall</span>
+              </a>
+            </li>
+            <li>
+              <a href="/composer"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-box mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">Composer</span>
+              </a>
+            </li>
+            <li>
+              <a href="/filemanager"
+                class="flex items-center px-3 py-1.5 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
+                <i class="bi bi-archive mr-2.5 sidebar-icon"></i>
+                <span class="sidebar-text">File Manager</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- Main Content -->
+      <main id="mainContent" class="flex-1 p-4 transition-all duration-300">
+        <div class="mb-4 flex justify-between items-center">
+          <div>
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+              <i class="bi bi-graph-up mr-2 text-primary-600 dark:text-primary-400"></i>
+              Visão Geral do Sistema
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-0.5 text-sm" id="lastUpdated">Atualizando...</p>
+          </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="statsRow">
+          <!-- Cards will be generated via JavaScript -->
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          <!-- Status Chart -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <h3 class="text-base font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+              <i class="bi bi-pie-chart mr-2 text-primary-600 dark:text-primary-400"></i>
+              Status dos Processos
+            </h3>
+            <div style="height: 180px;">
+              <canvas id="statusChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Memory Chart -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <h3 class="text-base font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+              <i class="bi bi-bar-chart mr-2 text-primary-600 dark:text-primary-400"></i>
+              Memória (Top 5)
+            </h3>
+            <div style="height: 180px; position: relative;">
+              <canvas id="memoryChart"></canvas>
+              <div id="memoryNoData"
+                class="hidden absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-center">
+                <div>
+                  <i class="bi bi-inbox text-4xl block mb-2"></i>
+                  <span class="text-sm">Nenhum dado de memória disponível</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Chart -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 mb-4">
+          <h3 class="text-base font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+            <i class="bi bi-clock-history mr-2 text-primary-600 dark:text-primary-400"></i>
+            Média de Uso - Últimas 24h
+          </h3>
+          <div style="height: 180px;">
+            <canvas id="historyChart"></canvas>
+          </div>
+        </div>
+
+        <!-- CPU Chart -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+          <h3 class="text-base font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+            <i class="bi bi-graph-up mr-2 text-primary-600 dark:text-primary-400"></i>
+            CPU por Processo
+          </h3>
+          <div style="height: 180px; position: relative;">
+            <canvas id="cpuChart"></canvas>
+            <div id="cpuNoData"
+              class="hidden absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-center">
+              <div>
+                <i class="bi bi-inbox text-4xl block mb-2"></i>
+                <span class="text-sm">Nenhum dado de CPU disponível</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-3 w-full mt-4">
+    <div class="px-4 text-center text-gray-500 dark:text-gray-400 text-xs">
+      &copy; <span id="currentYear"></span> Serve Dashboard - Home
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+    // Theme management
+    const themeToggle = document.getElementById('themeToggle');
+    const htmlElement = document.documentElement;
+    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      htmlElement.classList.add('dark');
+    } else {
+      htmlElement.classList.remove('dark');
+    }
+
+    // Helper to get current theme colors
+    function getThemeColors() {
+      const isDark = htmlElement.classList.contains('dark');
+      return {
+        text: isDark ? '#9ca3af' : '#6b7280',
+        grid: isDark ? 'rgba(156, 163, 175, 0.1)' : 'rgba(107, 114, 128, 0.1)',
+        legendText: isDark ? '#9ca3af' : '#6b7280'
+      };
+    }
+
+    themeToggle.addEventListener('click', () => {
+      htmlElement.classList.toggle('dark');
+      localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
+
+      // Recreate all charts with new theme colors
+      if (window.currentData) {
+        Object.keys(charts).forEach(key => {
+          if (charts[key]) {
+            charts[key].destroy();
+            charts[key] = null;
+          }
+        });
+        updateCharts(window.currentData);
+      }
+    });
+
+    // Sidebar toggle
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+
+    const sidebarCollapse = document.getElementById('sidebarCollapse');
+    const mainContent = document.getElementById('mainContent');
+    sidebarCollapse.addEventListener('click', () => {
+      sidebar.classList.toggle('sidebar-collapsed');
+      mainContent.classList.toggle('lg:ml-0');
+      localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('sidebar-collapsed'));
+    });
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+      sidebar.classList.add('sidebar-collapsed');
+      mainContent.classList.add('lg:ml-0');
+    }
+
+    // User menu
+    const userMenuButton = document.getElementById('userMenuButton');
+    const userMenu = document.getElementById('userMenu');
+    userMenuButton.addEventListener('click', () => userMenu.classList.toggle('hidden'));
+    document.addEventListener('click', (e) => {
+      if (!userMenuButton.contains(e.target) && !userMenu.contains(e.target)) {
+        userMenu.classList.add('hidden');
+      }
+    });
+
+    // Close sidebar on mobile link click
+    sidebar.addEventListener('click', (e) => {
+      if (e.target.tagName === 'A' && window.innerWidth < 1024) {
+        sidebar.classList.remove('open');
+      }
+    });
+
+    // Charts and data
+    let charts = {};
+    let autoRefreshInterval;
+
+    function formatDateTime(date) {
+      return new Date(date).toLocaleString('pt-BR');
+    }
+
+    function updateLastUpdated() {
+      document.getElementById('lastUpdated').textContent = `Atualizado: ${formatDateTime(new Date())}`;
+    }
+
+    function renderStatsCards(data) {
+      const statsRow = document.getElementById('statsRow');
+      statsRow.innerHTML = '';
+
+      const cardsData = [
+        { icon: 'bi-globe', color: 'text-blue-600 dark:text-blue-400', number: data.domains.length, label: 'Domínios' },
+        { icon: 'bi-terminal', color: 'text-green-600 dark:text-green-400', number: data.processes.length, label: 'Processos' },
+        { icon: 'bi-check-circle', color: 'text-green-600 dark:text-green-400', number: data.processes.filter(p => p.status === 'online').length, label: 'Online' },
+        { icon: 'bi-pause-circle', color: 'text-yellow-600 dark:text-yellow-400', number: data.processes.filter(p => p.status === 'stopped').length, label: 'Parados' }
+      ];
+
+      cardsData.forEach(card => {
+        const isHighMemory = data.processes.some(p => p.memory > 200 * 1024 * 1024);
+        const isHighCpu = data.processes.some(p => p.cpu > 15);
+        const shouldAlert = card.label === 'Processos' && (isHighMemory || isHighCpu);
+
+        const div = document.createElement('div');
+        div.className = `bg-white dark:bg-gray-800 rounded-lg shadow border ${shouldAlert ? 'border-red-500 dark:border-red-700 stat-card-alert' : 'border-gray-200 dark:border-gray-700'} p-4 text-center transition-all hover:shadow-lg`;
+        div.innerHTML = `
+          <div class="${card.color} text-2xl mb-2">
+            <i class="bi ${card.icon}"></i>
+          </div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">${card.number}</div>
+          <div class="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide mt-1">${card.label}</div>
+        `;
+        statsRow.appendChild(div);
+      });
+    }
+
+    function updateCharts(data) {
+      window.currentData = data; // Store for theme switching
+      const colors = getThemeColors();
+
+      // STATUS CHART
+      const statusCtx = document.getElementById('statusChart');
+      if (!statusCtx) return;
+
+      const online = data.processes.filter(p => p.status === 'online').length;
+      const stopped = data.processes.filter(p => p.status === 'stopped').length;
+      const errored = data.processes.filter(p => p.status === 'error' || p.status === 'errored').length;
+
+      if (charts.statusChart) {
+        charts.statusChart.data.datasets[0].data = [online, stopped, errored];
+        charts.statusChart.update();
+      } else {
+        charts.statusChart = new Chart(statusCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Online', 'Parados', 'Erro'],
+            datasets: [{
+              data: [online, stopped, errored],
+              backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: colors.legendText,
+                  font: { size: 11 },
+                  padding: 15
+                }
+              }
+            },
+            cutout: '65%'
+          }
+        });
+      }
+
+      // MEMORY CHART
+      const memoryCtx = document.getElementById('memoryChart');
+      const memoryNoData = document.getElementById('memoryNoData');
+
+      if (!memoryCtx) return;
+
+      const top5Memory = [...data.processes]
+        .sort((a, b) => (b.memory || 0) - (a.memory || 0))
+        .slice(0, 5)
+        .filter(p => p.memory > 0);
+
+      if (top5Memory.length > 0) {
+        memoryNoData.classList.add('hidden');
+        memoryCtx.classList.remove('hidden');
+
+        if (charts.memoryChart) {
+          charts.memoryChart.data.labels = top5Memory.map(p =>
+            p.name && p.name.length > 15 ? p.name.substring(0, 12) + '...' : (p.name || 'Unknown')
+          );
+          charts.memoryChart.data.datasets[0].data = top5Memory.map(p =>
+            Math.round((p.memory || 0) / 1024 / 1024)
+          );
+          charts.memoryChart.update();
+        } else {
+          charts.memoryChart = new Chart(memoryCtx, {
+            type: 'bar',
+            data: {
+              labels: top5Memory.map(p =>
+                p.name && p.name.length > 15 ? p.name.substring(0, 12) + '...' : (p.name || 'Unknown')
+              ),
+              datasets: [{
+                label: 'Memória (MB)',
+                data: top5Memory.map(p => Math.round((p.memory || 0) / 1024 / 1024)),
+                backgroundColor: '#0ea5e9',
+                borderRadius: 5
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: { color: colors.text, font: { size: 10 } },
+                  grid: { color: colors.grid }
+                },
+                x: {
+                  ticks: { color: colors.text, font: { size: 10 } },
+                  grid: { display: false }
+                }
+              },
+              plugins: {
+                legend: {
+                  display: false
+                }
+              }
+            }
+          });
+        }
+      } else {
+        if (charts.memoryChart) {
+          charts.memoryChart.destroy();
+          charts.memoryChart = null;
+        }
+        memoryCtx.classList.add('hidden');
+        memoryNoData.classList.remove('hidden');
+      }
+
+      // CPU CHART
+      const cpuCtx = document.getElementById('cpuChart');
+      const cpuNoData = document.getElementById('cpuNoData');
+
+      if (!cpuCtx) return;
+
+      const activeProcesses = data.processes.filter(p => (p.cpu > 0 || p.status === 'online') && p.name);
+
+      if (activeProcesses.length > 0) {
+        cpuNoData.classList.add('hidden');
+        cpuCtx.classList.remove('hidden');
+
+        if (charts.cpuChart) {
+          charts.cpuChart.data.labels = activeProcesses.map(p =>
+            p.name.length > 15 ? p.name.substring(0, 12) + '...' : p.name
+          );
+          charts.cpuChart.data.datasets[0].data = activeProcesses.map(p => p.cpu || 0);
+          charts.cpuChart.update();
+        } else {
+          charts.cpuChart = new Chart(cpuCtx, {
+            type: 'line',
+            data: {
+              labels: activeProcesses.map(p =>
+                p.name.length > 15 ? p.name.substring(0, 12) + '...' : p.name
+              ),
+              datasets: [{
+                label: 'CPU (%)',
+                data: activeProcesses.map(p => p.cpu || 0),
+                backgroundColor: 'rgba(14, 165, 233, 0.2)',
+                borderColor: '#0ea5e9',
+                borderWidth: 2,
+                pointRadius: 3,
+                tension: 0.3
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: { color: colors.text, font: { size: 10 } },
+                  grid: { color: colors.grid }
+                },
+                x: {
+                  ticks: { color: colors.text, font: { size: 10 } },
+                  grid: { display: false }
+                }
+              },
+              plugins: {
+                legend: {
+                  display: false
+                }
+              }
+            }
+          });
+        }
+      } else {
+        if (charts.cpuChart) {
+          charts.cpuChart.destroy();
+          charts.cpuChart = null;
+        }
+        cpuCtx.classList.add('hidden');
+        cpuNoData.classList.remove('hidden');
+      }
+
+      // HISTORY CHART
+      const historyCtx = document.getElementById('historyChart');
+      if (!historyCtx) return;
+
+      // Use cached data if available, otherwise fallback (shouldn't happen if initialized correctly)
+      const labels = historyDataCache ? historyDataCache.labels : [];
+      const cpuData = historyDataCache ? historyDataCache.cpuData : [];
+      const memData = historyDataCache ? historyDataCache.memData : [];
+
+      if (charts.historyChart) {
+        charts.historyChart.data.labels = labels;
+        charts.historyChart.data.datasets[0].data = cpuData;
+        charts.historyChart.data.datasets[1].data = memData;
+        charts.historyChart.update();
+      } else {
+        charts.historyChart = new Chart(historyCtx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'CPU (%)',
+                data: cpuData,
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.3
+              },
+              {
+                label: 'Memória (MB)',
+                data: memData,
+                borderColor: '#06b6d4',
+                backgroundColor: 'rgba(6, 182, 212, 0.08)',
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.3
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                ticks: { color: colors.text, font: { size: 10 } },
+                grid: { color: colors.grid }
+              },
+              x: {
+                ticks: { color: colors.text, font: { size: 10 } },
+                grid: { color: colors.grid }
+              }
+            },
+            plugins: {
+              legend: {
+                labels: {
+                  color: colors.legendText,
+                  font: { size: 11 }
+                }
+              }
+            },
+            interaction: {
+              intersect: false,
+              mode: 'index'
+            }
+          }
+        });
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function () {
+      // Fix EJS tags and ensure valid JSON
+      const initialData = {
+        domains: <%- JSON.stringify(sites || []) %>,
+        processes: <%- JSON.stringify(processes || []) %>
+      };
+
+      console.log('Dados iniciais:', initialData);
+
+      // Generate initial history data once
+      generateHistoryData(initialData);
+
+      renderStatsCards(initialData);
+      updateCharts(initialData);
+      updateLastUpdated();
+
+      // Auto-refresh
+      autoRefreshInterval = setInterval(function () {
+        Promise.all([
+          fetch('/api/domains').then(r => r.json()),
+          fetch('/api/processes').then(r => r.json())
+        ])
+          .then(([domainsRes, processesRes]) => {
+            const data = {
+              domains: domainsRes.sites || [],
+              processes: processesRes.processes || []
+            };
+            console.log('Dados atualizados:', data);
+            // Regenerate history on data update
+            generateHistoryData(data);
+            renderStatsCards(data);
+            updateCharts(data);
+            updateLastUpdated();
+          })
+          .catch(err => {
+            console.error('Erro ao atualizar dados:', err);
+          });
+      }, 30000);
+
+      window.addEventListener('beforeunload', function () {
+        clearInterval(autoRefreshInterval);
+      });
+    });
+
+    // Store history data globally to prevent jumping on theme switch
+    let historyDataCache = null;
+
+    function generateHistoryData(data) {
+      const now = new Date();
+      const labels = [];
+      const cpuData = [];
+      const memData = [];
+
+      for (let i = 23; i >= 0; i--) {
+        const hour = new Date(now.getTime() - (i * 3600000));
+        labels.push(hour.getHours() + 'h');
+        const avgCpu = data.processes.length ?
+          data.processes.reduce((s, p) => s + (p.cpu || 0), 0) / data.processes.length : 0;
+        const avgMem = data.processes.length ?
+          data.processes.reduce((s, p) => s + ((p.memory || 0) / 1024 / 1024), 0) / data.processes.length : 0;
+
+        // Use a deterministic pseudo-random or just the average to be stable
+        // For simulation, we keep random but only generate when data updates, not on theme switch
+        cpuData.push(Math.max(0, avgCpu + (Math.random() * 6 - 3)));
+        memData.push(Math.max(0, avgMem + (Math.random() * 30 - 15)));
+      }
+
+      historyDataCache = { labels, cpuData, memData };
+    }
+  </script>
+</body>
+
+</html>
