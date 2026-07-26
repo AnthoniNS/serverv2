@@ -334,87 +334,93 @@
             </button>
           </div>
           <div class="p-3">
-            <% if (processes && processes.length> 0) { %>
-              <table class="w-full">
-                <thead>
-                  <tr>
-                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Nome</th>
-                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Script</th>
-                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Porta</th>
-                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Status</th>
-                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">CPU</th>
-                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Mem</th>
-                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Ações</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                  <% processes.forEach(p=> { %>
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                      <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">
-                        <%= p.name %>
-                      </td>
-                      <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-xs">
-                        <%= p.pm2_env?.pm_exec_path || '' %>
-                      </td>
-                      <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-xs">
-                        <%= p.pm2_env?.env?.PORT || '-' %>
-                      </td>
-                      <td class="px-3 py-2">
-                        <span
-                          class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium <%= p.pm2_env?.status === 'online' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : p.pm2_env?.status === 'stopped' ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' %>">
-                          <%= p.pm2_env?.status || 'unknown' %>
-                        </span>
-                      </td>
-                      <td class="px-3 py-2 text-gray-600 dark:text-gray-400">
-                        <%= (p.monit?.cpu || 0).toFixed(1) %>%
-                      </td>
-                      <td class="px-3 py-2 text-gray-600 dark:text-gray-400">
-                        <%= Math.round((p.monit?.memory || 0) / 1024 / 1024) %> MB
-                      </td>
-                      <td class="px-3 py-2">
-                        <div class="flex space-x-1">
-                          <% if (p.pm2_env?.status==='online' ) { %>
-                            <button onclick="action('stop', '<%= p.name %>')"
-                              class="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs transition-colors"
-                              title="Parar">
-                              <i class="bi bi-pause-fill"></i>
-                            </button>
-                            <% } else { %>
-                              <button onclick="action('start', '<%= p.name %>')"
-                                class="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs transition-colors"
-                                title="Iniciar">
-                                <i class="bi bi-play-fill"></i>
-                              </button>
-                              <% } %>
-                                <button onclick="action('restart', '<%= p.name %>')"
-                                  class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors"
-                                  title="Reiniciar">
-                                  <i class="bi bi-arrow-clockwise"></i>
-                                </button>
-                                <button onclick="action('delete', '<%= p.name %>')"
-                                  class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs transition-colors"
-                                  title="Excluir">
-                                  <i class="bi bi-trash"></i>
-                                </button>
-                                <button onclick="showLogs('<%= p.name %>')"
-                                  class="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-xs transition-colors"
-                                  title="Logs">
-                                  <i class="bi bi-journal-text"></i>
-                                </button>
-                        </div>
-                      </td>
+            <% if (processes && processes.length > 0) { %>
+
+              <!-- MOBILE: Card view -->
+              <div class="md:hidden space-y-3">
+                <% processes.forEach(p => { %>
+                  <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/30">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="font-semibold text-gray-900 dark:text-white text-sm"><%= p.name %></span>
+                      <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium <%= p.pm2_env?.status === 'online' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : p.pm2_env?.status === 'stopped' ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' %>">
+                        <%= p.pm2_env?.status || 'unknown' %>
+                      </span>
+                    </div>
+                    <div class="flex gap-3 text-xs text-gray-500 dark:text-gray-400 mb-3">
+                      <span><i class="bi bi-cpu mr-1"></i><%= (p.monit?.cpu || 0).toFixed(1) %>%</span>
+                      <span><i class="bi bi-memory mr-1"></i><%= Math.round((p.monit?.memory || 0) / 1024 / 1024) %> MB</span>
+                      <% if (p.pm2_env?.env?.PORT) { %><span><i class="bi bi-door-open mr-1"></i>:<%= p.pm2_env.env.PORT %></span><% } %>
+                    </div>
+                    <div class="flex gap-2">
+                      <% if (p.pm2_env?.status === 'online') { %>
+                        <button onclick="action('stop', '<%= p.name %>')" class="flex-1 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-xs font-medium flex items-center justify-center gap-1"><i class="bi bi-pause-fill"></i> Parar</button>
+                      <% } else { %>
+                        <button onclick="action('start', '<%= p.name %>')" class="flex-1 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium flex items-center justify-center gap-1"><i class="bi bi-play-fill"></i> Iniciar</button>
+                      <% } %>
+                      <button onclick="action('restart', '<%= p.name %>')" class="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium flex items-center justify-center gap-1"><i class="bi bi-arrow-clockwise"></i> Restart</button>
+                      <button onclick="showLogs('<%= p.name %>')" class="flex-1 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded text-xs font-medium flex items-center justify-center gap-1"><i class="bi bi-journal-text"></i> Logs</button>
+                      <button onclick="action('delete', '<%= p.name %>')" class="py-1.5 px-2.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs flex items-center"><i class="bi bi-trash"></i></button>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+
+              <!-- DESKTOP: Table view -->
+              <div class="hidden md:block overflow-x-auto">
+                <table class="w-full">
+                  <thead>
+                    <tr>
+                      <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">Nome</th>
+                      <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">Script</th>
+                      <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">Porta</th>
+                      <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">Status</th>
+                      <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">CPU</th>
+                      <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">Mem</th>
+                      <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">Ações</th>
                     </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <% processes.forEach(p => { %>
+                      <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td class="px-3 py-2 font-medium text-gray-900 dark:text-white text-xs whitespace-nowrap"><%= p.name %></td>
+                        <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-xs" style="max-width:160px">
+                          <span class="block truncate" title="<%= p.pm2_env?.pm_exec_path || '' %>"><%= p.pm2_env?.pm_exec_path || '' %></span>
+                        </td>
+                        <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-xs"><%= p.pm2_env?.env?.PORT || '-' %></td>
+                        <td class="px-3 py-2">
+                          <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium <%= p.pm2_env?.status === 'online' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : p.pm2_env?.status === 'stopped' ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' %>">
+                            <%= p.pm2_env?.status || 'unknown' %>
+                          </span>
+                        </td>
+                        <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-xs"><%= (p.monit?.cpu || 0).toFixed(1) %>%</td>
+                        <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-xs"><%= Math.round((p.monit?.memory || 0) / 1024 / 1024) %> MB</td>
+                        <td class="px-3 py-2">
+                          <div class="flex space-x-1">
+                            <% if (p.pm2_env?.status === 'online') { %>
+                              <button onclick="action('stop', '<%= p.name %>')" class="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs" title="Parar"><i class="bi bi-pause-fill"></i></button>
+                            <% } else { %>
+                              <button onclick="action('start', '<%= p.name %>')" class="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs" title="Iniciar"><i class="bi bi-play-fill"></i></button>
+                            <% } %>
+                            <button onclick="action('restart', '<%= p.name %>')" class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs" title="Reiniciar"><i class="bi bi-arrow-clockwise"></i></button>
+                            <button onclick="action('delete', '<%= p.name %>')" class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs" title="Excluir"><i class="bi bi-trash"></i></button>
+                            <button onclick="showLogs('<%= p.name %>')" class="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-xs" title="Logs"><i class="bi bi-journal-text"></i></button>
+                          </div>
+                        </td>
+                      </tr>
                     <% }) %>
-                </tbody>
-              </table>
-              <% } else { %>
-                <div class="text-center py-12">
-                  <i class="bi bi-emoji-frown text-4xl text-gray-400 dark:text-gray-500"></i>
-                  <h4 class="mt-3 text-lg font-medium text-gray-900 dark:text-white">Nenhum processo em execução</h4>
-                  <p class="mt-1 text-gray-600 dark:text-gray-400">Inicie um novo processo acima.</p>
-                </div>
-                <% } %>
+                  </tbody>
+                </table>
+              </div>
+
+            <% } else { %>
+              <div class="text-center py-12">
+                <i class="bi bi-emoji-frown text-4xl text-gray-400 dark:text-gray-500"></i>
+                <h4 class="mt-3 text-lg font-medium text-gray-900 dark:text-white">Nenhum processo em execução</h4>
+                <p class="mt-1 text-gray-600 dark:text-gray-400">Inicie um novo processo acima.</p>
+              </div>
+            <% } %>
           </div>
+
         </div>
       </main>
     </div>

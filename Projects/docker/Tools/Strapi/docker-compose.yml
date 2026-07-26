@@ -1,0 +1,57 @@
+services:
+  strapi:
+    image: strapi/strapi:latest
+    container_name: strapi
+    restart: unless-stopped
+
+    environment:
+      NODE_ENV: ${NODE_ENV}
+
+      DATABASE_CLIENT: postgres
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+
+      APP_KEYS: ${APP_KEYS}
+      API_TOKEN_SALT: ${API_TOKEN_SALT}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
+      TRANSFER_TOKEN_SALT: ${TRANSFER_TOKEN_SALT}
+      JWT_SECRET: ${JWT_SECRET}
+
+    ports:
+      - "1338:1337"
+
+    volumes:
+      - ./strapi:/srv/app
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16
+    container_name: strapi_postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+
+    volumes:
+      - strapi_postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  strapi_postgres_data:

@@ -1,0 +1,25 @@
+# MySQL
+Projects/docker/Mysql/mysql/
+
+# Arquivos de socket
+*.sock
+
+# Dados de banco de dados
+*.ibd
+*.frm
+*.MYD
+*.MYI
+auto.cnf
+binlog.*
+ib_buffer_pool
+
+# Docker
+**/mysql/
+**/postgres/
+**/redis/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*

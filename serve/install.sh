@@ -151,14 +151,17 @@ if command -v node &> /dev/null; then
     log "⬢ Node.js: v$NODE_VER"
 fi
 
-if [ "$NODE_MAJOR" -lt 20 ]; then
+if [ "$NODE_MAJOR" -lt 20 ] || ! command -v npm &> /dev/null || command -v npm | grep -q "^/mnt/"; then
     log "⬢ Instalando Node.js 20.x..."
     sudo apt remove -y nodejs npm 2>/dev/null || true
     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - >/dev/null
     run_cmd "sudo apt install -y nodejs"
-    run_cmd "sudo npm install -g npm@latest"
+    # Ensure npm package is installed if NodeSource doesn't provide it directly
+    if ! command -v npm &> /dev/null || command -v npm | grep -q "^/mnt/"; then
+        run_cmd "sudo apt install -y npm"
+    fi
 else
-    log "⬢ Node.js 20+ já instalado."
+    log "⬢ Node.js 20+ e NPM já instalados."
 fi
 
 # =============================
@@ -174,21 +177,26 @@ fi
 # =============================
 # PHP
 # =============================
-log "🐘 Instalando PHP $PHP_VERSION..."
+log "🐘 Instalando PHP..."
 
-if [[ "$DISTRO" == "ubuntu" ]]; then
-    log "Ubuntu: usando PPA ondrej/php"
-    run_cmd "sudo add-apt-repository ppa:ondrej/php -y"
-    run_cmd "sudo apt update -y"
-elif [[ "$DISTRO" == "debian" ]]; then
-    log "Debian: usando packages.sury.org/php"
-    if [ ! -f /etc/apt/trusted.gpg.d/sury-php.gpg ]; then
-        wget -O /tmp/sury-php.gpg https://packages.sury.org/php/apt.gpg
-        sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/sury-php.gpg /tmp/sury-php.gpg
-    fi
-    if [ ! -f /etc/apt/sources.list.d/php.list ]; then
-        echo "deb https://packages.sury.org/php/ $CODENAME main" | sudo tee /etc/apt/sources.list.d/php.list > /dev/null
+if [[ "$CODENAME" == "resolute" ]]; then
+    PHP_VERSION="8.5"
+    log "Ubuntu Resolute detectado, forçando PHP $PHP_VERSION da base oficial (PPA ignorado)"
+else
+    if [[ "$DISTRO" == "ubuntu" ]]; then
+        log "Ubuntu: usando PPA ondrej/php"
+        run_cmd "sudo add-apt-repository ppa:ondrej/php -y"
         run_cmd "sudo apt update -y"
+    elif [[ "$DISTRO" == "debian" ]]; then
+        log "Debian: usando packages.sury.org/php"
+        if [ ! -f /etc/apt/trusted.gpg.d/sury-php.gpg ]; then
+            wget -O /tmp/sury-php.gpg https://packages.sury.org/php/apt.gpg
+            sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/sury-php.gpg /tmp/sury-php.gpg
+        fi
+        if [ ! -f /etc/apt/sources.list.d/php.list ]; then
+            echo "deb https://packages.sury.org/php/ $CODENAME main" | sudo tee /etc/apt/sources.list.d/php.list > /dev/null
+            run_cmd "sudo apt update -y"
+        fi
     fi
 fi
 
@@ -216,15 +224,15 @@ fi
 # =============================
 # gRPC
 # =============================
-if ! php${PHP_VERSION} -m | grep -qi grpc; then
-    log "🔌 Instalando gRPC..."
-    run_cmd "sudo pecl install grpc"
-    sudo mkdir -p "/etc/php/${PHP_VERSION}/mods-available"
-    echo "extension=grpc.so" | sudo tee "/etc/php/${PHP_VERSION}/mods-available/grpc.ini" >/dev/null
-    run_cmd "sudo phpenmod -v ${PHP_VERSION} -s ALL grpc"
-else
-    log "🔌 gRPC já carregado."
-fi
+#if ! php${PHP_VERSION} -m | grep -qi grpc; then
+#    log "🔌 Instalando gRPC..."
+#    run_cmd "sudo pecl install grpc"
+#    sudo mkdir -p "/etc/php/${PHP_VERSION}/mods-available"
+#    echo "extension=grpc.so" | sudo tee "/etc/php/${PHP_VERSION}/mods-available/grpc.ini" >/dev/null
+#    run_cmd "sudo phpenmod -v ${PHP_VERSION} -s ALL grpc"
+#else
+#    log "🔌 gRPC já carregado."
+#fi
 
 # =============================
 # Composer
@@ -274,10 +282,10 @@ fi
 #==============================
 CURRENT_DIR="$(pwd)"
 
-sudo chmod 755 "$CURRENT_DIR/serve"
-sudo chmod 755 "$CURRENT_DIR/serve/caddy"
-sudo chmod -R 755 "$CURRENT_DIR/serve/caddy/sites-enabled"
-sudo chown -R caddy:caddy "$CURRENT_DIR/serve/caddy"
+sudo chmod 755 "$CURRENT_DIR"
+sudo chmod 755 "$CURRENT_DIR/caddy"
+sudo chmod -R 755 "$CURRENT_DIR/caddy/sites-enabled"
+sudo chown -R caddy:caddy "$CURRENT_DIR/caddy"
 
 #==============================
 # =============================

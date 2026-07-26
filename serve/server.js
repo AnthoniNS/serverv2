@@ -179,7 +179,10 @@ app.get('/api/pm2/logs/:name?', requireLogin, async (req, res) => {
 app.get('/filemanager', requireLogin, (req, res) => {
   res.render('filemanager');
 });
-
+// ========== ROTAS PHPMyAdmin ========== //
+app.get('/phpmyadmin', requireLogin, (req, res) => {
+  res.render('phpmyadmin');
+});
 // ========== ROTAS CADDY ========== //
 app.get('/caddy', requireLogin, async (req, res) => {
   try {

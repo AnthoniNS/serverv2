@@ -7,7 +7,7 @@ services:
         MYSQL_ROOT_PASSWORD: root2
         MYSQL_PASSWORD: root
       volumes:
-        - ./mysql:/var/lib/mysql
+        - mysql_data:/var/lib/mysql
       networks:
         - minharede
       healthcheck:
@@ -17,3 +17,5 @@ services:
 networks:
   minharede:
     external: true
+volumes:
+  mysql_data:

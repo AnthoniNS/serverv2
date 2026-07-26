@@ -319,88 +319,94 @@
                 </div>
                 <% } else { %>
                   <div class="p-3">
-                    <table class="w-full">
-                      <thead>
-                        <tr>
-                          <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Projeto</th>
-                          <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Status</th>
-                          <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Portas</th>
-                          <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                        <% projects.forEach(project=> { %>
-                          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                            <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">
-                              <%= project.name %>
-                            </td>
-                            <td class="px-3 py-2">
-                              <span
-                                class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium <%=project.status === 'running' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : project.status === 'stopped' ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400' : project.status === 'not started' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' %>">
-                                <%= project.status==='running' ? 'Online' : project.status==='stopped' ? 'Parado' :
-                                  project.status==='not started' ? 'Não Iniciado' : 'Erro' %>
-                              </span>
-                            </td>
-                            <td class="px-3 py-2">
-                              <% if (project.ports && project.ports.length> 0) { %>
-                                <div class="flex flex-wrap gap-1">
-                                  <% project.ports.forEach(port=> { %>
-                                    <span
-                                      class="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs">
-                                      <i class="bi bi-door-open mr-1"></i>
-                                      <%= port %>
-                                    </span>
+
+                    <!-- MOBILE: Cards -->
+                    <div class="md:hidden space-y-3">
+                      <% projects.forEach(project => { %>
+                        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/30">
+                          <div class="flex items-center justify-between mb-2">
+                            <span class="font-semibold text-gray-900 dark:text-white text-sm"><%= project.name %></span>
+                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium <%= project.status === 'running' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : project.status === 'stopped' ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' : project.status === 'not started' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' %>">
+                              <%= project.status === 'running' ? 'Online' : project.status === 'stopped' ? 'Parado' : project.status === 'not started' ? 'Não Iniciado' : 'Erro' %>
+                            </span>
+                          </div>
+                          <% if (project.ports && project.ports.length > 0) { %>
+                            <div class="flex flex-wrap gap-1 mb-3">
+                              <% project.ports.forEach(port => { %>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs">
+                                  <i class="bi bi-door-open mr-1"></i><%= port %>
+                                </span>
+                              <% }) %>
+                            </div>
+                          <% } else { %><div class="mb-3"></div><% } %>
+                          <div class="flex gap-2">
+                            <button onclick="showUpOutput('<%= project.name %>')" class="flex-1 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium flex items-center justify-center gap-1"><i class="bi bi-play-fill"></i> Iniciar</button>
+                            <button onclick="dockerAction('down', '<%= project.name %>')" class="flex-1 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium flex items-center justify-center gap-1"><i class="bi bi-stop-fill"></i> Parar</button>
+                            <button onclick="dockerAction('restart', '<%= project.name %>')" class="flex-1 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs font-medium flex items-center justify-center gap-1"><i class="bi bi-arrow-clockwise"></i> Restart</button>
+                            <div class="relative">
+                              <button onclick="toggleDropdown('<%= project.name %>')" class="py-1.5 px-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs flex items-center"><i class="bi bi-three-dots"></i></button>
+                              <div id="dropdown-<%= project.name %>" class="hidden absolute right-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 border border-gray-200 dark:border-gray-700">
+                                <a href="#" onclick="showLogs('<%= project.name %>')" class="block px-3 py-1.5 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="bi bi-journal-text mr-2"></i>Logs</a>
+                                <a href="#" onclick="editCompose('<%= project.name %>')" class="block px-3 py-1.5 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="bi bi-pencil-square mr-2"></i>Editar</a>
+                                <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                                <a href="#" onclick="deleteProject('<%= project.name %>')" class="block px-3 py-1.5 text-xs text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="bi bi-trash mr-2"></i>Excluir</a>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      <% }) %>
+                    </div>
+
+                    <!-- DESKTOP: Table -->
+                    <div class="hidden md:block overflow-x-auto">
+                      <table class="w-full">
+                        <thead>
+                          <tr>
+                            <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">Projeto</th>
+                            <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">Status</th>
+                            <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">Portas</th>
+                            <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                          <% projects.forEach(project => { %>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                              <td class="px-3 py-2 font-medium text-gray-900 dark:text-white text-xs"><%= project.name %></td>
+                              <td class="px-3 py-2">
+                                <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium <%= project.status === 'running' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : project.status === 'stopped' ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' : project.status === 'not started' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' %>">
+                                  <%= project.status === 'running' ? 'Online' : project.status === 'stopped' ? 'Parado' : project.status === 'not started' ? 'Não Iniciado' : 'Erro' %>
+                                </span>
+                              </td>
+                              <td class="px-3 py-2">
+                                <% if (project.ports && project.ports.length > 0) { %>
+                                  <div class="flex flex-wrap gap-1">
+                                    <% project.ports.forEach(port => { %>
+                                      <span class="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs"><i class="bi bi-door-open mr-1"></i><%= port %></span>
                                     <% }) %>
-                                </div>
-                                <% } else { %>
-                                  <span class="text-gray-500 text-xs">-</span>
-                                  <% } %>
-                            </td>
-                            <td class="px-3 py-2">
-                              <div class="flex items-center gap-1">
-                                <button onclick="showUpOutput('<%= project.name %>')"
-                                  class="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs transition-colors"
-                                  title="Iniciar">
-                                  <i class="bi bi-play-fill"></i>
-                                </button>
-                                <button onclick="dockerAction('down', '<%= project.name %>')"
-                                  class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs transition-colors"
-                                  title="Parar">
-                                  <i class="bi bi-stop-fill"></i>
-                                </button>
-                                <button onclick="dockerAction('restart', '<%= project.name %>')"
-                                  class="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs transition-colors"
-                                  title="Reiniciar">
-                                  <i class="bi bi-arrow-clockwise"></i>
-                                </button>
-                                <div class="relative inline-block">
-                                  <button onclick="toggleDropdown('<%= project.name %>')"
-                                    class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors">
-                                    <i class="bi bi-three-dots"></i>
-                                  </button>
-                                  <div id="dropdown-<%= project.name %>"
-                                    class="hidden absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 border border-gray-200 dark:border-gray-700">
-                                    <a href="#" onclick="showLogs('<%= project.name %>')"
-                                      class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                      <i class="bi bi-journal-text mr-2"></i>Logs
-                                    </a>
-                                    <a href="#" onclick="editCompose('<%= project.name %>')"
-                                      class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                      <i class="bi bi-pencil-square mr-2"></i>Editar
-                                    </a>
-                                    <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-                                    <a href="#" onclick="deleteProject('<%= project.name %>')"
-                                      class="block px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                      <i class="bi bi-trash mr-2"></i>Excluir
-                                    </a>
+                                  </div>
+                                <% } else { %><span class="text-gray-500 text-xs">-</span><% } %>
+                              </td>
+                              <td class="px-3 py-2">
+                                <div class="flex items-center gap-1">
+                                  <button onclick="showUpOutput('<%= project.name %>')" class="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs" title="Iniciar"><i class="bi bi-play-fill"></i></button>
+                                  <button onclick="dockerAction('down', '<%= project.name %>')" class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs" title="Parar"><i class="bi bi-stop-fill"></i></button>
+                                  <button onclick="dockerAction('restart', '<%= project.name %>')" class="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs" title="Reiniciar"><i class="bi bi-arrow-clockwise"></i></button>
+                                  <div class="relative inline-block">
+                                    <button onclick="toggleDropdown('<%= project.name %>')" class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs"><i class="bi bi-three-dots"></i></button>
+                                    <div id="dropdown-<%= project.name %>" class="hidden absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 border border-gray-200 dark:border-gray-700">
+                                      <a href="#" onclick="showLogs('<%= project.name %>')" class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="bi bi-journal-text mr-2"></i>Logs</a>
+                                      <a href="#" onclick="editCompose('<%= project.name %>')" class="block px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="bi bi-pencil-square mr-2"></i>Editar</a>
+                                      <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                                      <a href="#" onclick="deleteProject('<%= project.name %>')" class="block px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="bi bi-trash mr-2"></i>Excluir</a>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </td>
-                          </tr>
+                              </td>
+                            </tr>
                           <% }) %>
-                      </tbody>
-                    </table>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                   <% } %>
             </div>

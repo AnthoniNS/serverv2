@@ -347,19 +347,25 @@
           </div>
           <div class="p-3">
             <div class="list-wrapper">
-              <table class="w-full table-compact">
-                <thead>
-                  <tr>
-                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Nome</th>
-                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Tipo</th>
-                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Caminho</th>
-                    <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium">Ações</th>
-                  </tr>
-                </thead>
-                <tbody id="reposTableBody" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
-              </table>
+              <!-- MOBILE: Cards (hidden on md+) -->
+              <div id="reposCardView" class="md:hidden space-y-3"></div>
+              <!-- DESKTOP: Table (hidden on mobile) -->
+              <div class="hidden md:block overflow-x-auto">
+                <table class="w-full">
+                  <thead>
+                    <tr>
+                      <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">Nome</th>
+                      <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">Tipo</th>
+                      <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">Caminho</th>
+                      <th class="text-left px-3 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reposTableBody" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                </table>
+              </div>
             </div>
           </div>
+
         </div>
       </main>
     </div>
@@ -509,6 +515,7 @@
     // Load repositories
     async function loadRepos() {
       const tbody = document.getElementById('reposTableBody');
+      const cardView = document.getElementById('reposCardView');
       try {
         const res = await fetch('/api/git/repos');
         const data = await res.json();
@@ -521,9 +528,11 @@
               </td>
             </tr>
           `;
+          cardView.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 text-sm py-6">Nenhum repositório Git encontrado.</p>`;
           return;
         }
 
+        // Desktop table rows
         tbody.innerHTML = data.repos.map(repo => `
           <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
             <td class="px-3 py-2">
@@ -537,18 +546,34 @@
             <td class="px-3 py-2">
               <span class="status-badge success">${repo.type.toUpperCase()}</span>
             </td>
-            <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-xs">${repo.path}</td>
+            <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-xs" style="max-width:160px">
+              <span class="block truncate" title="${repo.path}">${repo.path}</span>
+            </td>
             <td class="px-3 py-2">
               <div class="flex space-x-1">
-                <button 
-                  class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors flex items-center"
-                  onclick="pullRepo('${repo.path}', '${repo.name}')"
-                >
+                <button class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs flex items-center" onclick="pullRepo('${repo.path}', '${repo.name}')">
                   <i class="bi bi-arrow-clockwise mr-1"></i> Atualizar
                 </button>
               </div>
             </td>
           </tr>
+        `).join('');
+
+        // Mobile cards
+        cardView.innerHTML = data.repos.map(repo => `
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/30">
+            <div class="flex items-center mb-1">
+              <div class="w-7 h-7 rounded-md bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 mr-2 flex-shrink-0">
+                <i class="bi bi-git text-sm"></i>
+              </div>
+              <span class="font-semibold text-gray-900 dark:text-white text-sm">${repo.name}</span>
+              <span class="ml-auto inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">${repo.type.toUpperCase()}</span>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 truncate" title="${repo.path}">${repo.path}</p>
+            <button class="w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium flex items-center justify-center gap-1" onclick="pullRepo('${repo.path}', '${repo.name}')">
+              <i class="bi bi-arrow-clockwise"></i> Atualizar
+            </button>
+          </div>
         `).join('');
 
       } catch (err) {
@@ -559,8 +584,10 @@
             </td>
           </tr>
         `;
+        cardView.innerHTML = `<p class="text-center text-red-600 dark:text-red-400 text-sm py-6">Erro ao carregar repositórios: ${err.message}</p>`;
       }
     }
+
 
     // Clone repository
     async function cloneRepo() {
